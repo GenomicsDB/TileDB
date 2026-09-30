@@ -241,7 +241,8 @@ int ArrayIterator::next() {
   int evaluated_cell = true;
   do {
     std::vector<int> needs_new_read;
-    const std::vector<int> attribute_ids = array_->attribute_ids();
+    // A reference: next() runs once per cell, and a copy costs an allocation each time
+    const std::vector<int>& attribute_ids = array_->attribute_ids();
     int attribute_id_num = attribute_ids.size();
   
     for(int i=0; i<attribute_id_num; ++i) {
