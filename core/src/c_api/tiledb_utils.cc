@@ -501,8 +501,8 @@ int read_entire_file(const std::string& filename, void **buffer, size_t *length)
 #endif
     rc = close_file(tiledb_ctx, filename);
   } else {
-    memset(*buffer, 0, size+1);
-    free(buffer);
+    free(*buffer);
+    *buffer = NULL;
     *length = 0;
     rc = TILEDB_ERR;
   }
