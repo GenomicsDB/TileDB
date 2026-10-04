@@ -98,6 +98,22 @@ configure_hadoop() {
   echo "configure_hadoop successful"
 }
 
+# A single-node HDFS, for when the site configuration in the encrypted resources isn't available
+configure_single_node_hdfs() {
+  cat > $HADOOP_DIR/etc/hadoop/core-site.xml << END
+<configuration>
+  <property><name>fs.defaultFS</name><value>hdfs://localhost:9000</value></property>
+</configuration>
+END
+  cat > $HADOOP_DIR/etc/hadoop/hdfs-site.xml << END
+<configuration>
+  <property><name>dfs.replication</name><value>1</value></property>
+</configuration>
+END
+  # The daemons are started over ssh, which doesn't pass on JAVA_HOME
+  echo "export JAVA_HOME=/usr/java/latest" >> $HADOOP_DIR/etc/hadoop/hadoop-env.sh
+}
+
 setup_paths() {
   echo "export JAVA_HOME=/usr/java/latest" > $HADOOP_ENV
   echo "export PATH=$HADOOP_DIR/bin:$PATH" >> $HADOOP_ENV
@@ -114,7 +130,11 @@ install_hadoop() {
   if [[ ! -f $HADOOP_ENV ]]; then
     download_hadoop &&
       setup_paths &&
-      cp -fr $GITHUB_WORKSPACE/.github/resources/hadoop/* $HADOOP_DIR/etc/hadoop &&
+      if [[ -d $GITHUB_WORKSPACE/.github/resources/hadoop ]]; then
+        cp -fr $GITHUB_WORKSPACE/.github/resources/hadoop/* $HADOOP_DIR/etc/hadoop
+      else
+        configure_single_node_hdfs
+      fi &&
       mkdir -p $HADOOP_DIR/logs &&
       export HADOOP_ROOT_LOGGER=ERROR,console
   fi
@@ -125,8 +145,10 @@ install_hadoop() {
 
 echo "INSTALL_DIR=$INSTALL_DIR"
 echo "INSTALL_TYPE=$INSTALL_TYPE"
-# resources r.tar file encrypted using "gpg --symmetric --cipher-algo AES256 r.tar"
-gpg --quiet --batch --yes --decrypt --passphrase="$R_TAR" --output $INSTALL_DIR/r.tar $GITHUB_WORKSPACE/.github/scripts/r.tar.gpg &&
-tar xf $INSTALL_DIR/r.tar -C $GITHUB_WORKSPACE/.github &&
+# resources r.tar file encrypted using "gpg --symmetric --cipher-algo AES256 r.tar"; HDFS alone doesn't need it
+if [[ -n $R_TAR ]]; then
+  gpg --quiet --batch --yes --decrypt --passphrase="$R_TAR" --output $INSTALL_DIR/r.tar $GITHUB_WORKSPACE/.github/scripts/r.tar.gpg &&
+  tar xf $INSTALL_DIR/r.tar -C $GITHUB_WORKSPACE/.github
+fi &&
 install_hadoop
 

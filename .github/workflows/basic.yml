@@ -49,16 +49,17 @@ env:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-22.04]
         # All supported types
         # type: [basic, basic-no-hdfs, basic-codec, hdfs, gcs, azure, azurite, aws]
         type: [basic, basic-no-hdfs, basic-codec, hdfs, gcs, azure, aws]
         include:
-          - os: macos-13
+          - os: macos-15-intel
             type: basic
             openssl-version: 1.1
-          - os: macos-13
+          - os: macos-15-intel
             type: basic
             openssl-version: 3
 
@@ -66,6 +67,22 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+
+    # The cloud tests need credentials kept in the repository's secrets, so they're skipped where there are none
+    - name: Check for cloud credentials
+      id: credentials
+      shell: bash
+      run: |
+        case "${{matrix.type}}" in
+          gcs) available=${{secrets.R_NEW_TAR != ''}} ;;
+          azure) available=${{secrets.AZ_TAR != ''}} ;;
+          aws) available=${{secrets.AWS_ACCESS_KEY_ID != ''}} ;;
+          *) available=true ;;
+        esac
+        echo "available=$available" >> "$GITHUB_OUTPUT"
+        if [[ $available != true ]]; then
+          echo "::notice::Skipping the ${{matrix.type}} tests: this repository has no credentials for them"
+        fi
 
     - name: Create Build Environment
       shell: bash
@@ -102,7 +119,7 @@ jobs:
         key: dfs-${{env.HADOOP_VER}}-v1-${{matrix.os}}-openssl-v1
 
     - name: Install Prereqs and Configure CMake - Ubuntu
-      if: startsWith(matrix.os,'ubuntu')
+      if: startsWith(matrix.os,'ubuntu') && steps.credentials.outputs.available == 'true'
       shell: bash
       working-directory: ${{env.CMAKE_BUILD_DIR}}
       run: |
@@ -174,7 +191,7 @@ jobs:
         test/test_print_book_keeping $GITHUB_WORKSPACE/test/inputs/examples_ws/sparse_arrays/my_array_B/__4FECD19A-4F7D-4D21-B170-A2D111C8FCC44550772224_1652300381620
         
     - name: Build and Test - Distributed FileSystems
-      if: startsWith(matrix.type, 'basic') != true
+      if: startsWith(matrix.type, 'basic') != true && steps.credentials.outputs.available == 'true'
       shell: bash
       working-directory:  ${{env.CMAKE_BUILD_DIR}}
       run: |
