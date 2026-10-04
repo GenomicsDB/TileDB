@@ -41,11 +41,10 @@
 #  define BLOSC_EXTERN_DECL
 #endif
 
-BLOSC_EXTERN_DECL void (*blosc_init)();
-BLOSC_EXTERN_DECL void (*blosc_destroy)();
-BLOSC_EXTERN_DECL int (*blosc_set_compressor)(const char *);
-BLOSC_EXTERN_DECL int (*blosc_compress)(int, int, size_t, size_t, const void *, void *, size_t);
-BLOSC_EXTERN_DECL int (*blosc_decompress)(const void *, void *, size_t);
+// Blosc's context functions keep no global state, so tiles can be compressed and decompressed on several threads
+// at once
+BLOSC_EXTERN_DECL int (*blosc_compress_ctx)(int, int, size_t, size_t, const void *, void *, size_t, const char *, size_t, int);
+BLOSC_EXTERN_DECL int (*blosc_decompress_ctx)(const void *, void *, size_t, int);
 
 class CodecBlosc : public Codec {
  public:
@@ -60,11 +59,8 @@ class CodecBlosc : public Codec {
     std::call_once(loaded, [this]() {
         dl_handle = get_dlopen_handle("blosc");
         if (dl_handle) {
-          BIND_SYMBOL(dl_handle, blosc_init, "blosc_init", (void (*)()));
-          BIND_SYMBOL(dl_handle, blosc_destroy, "blosc_destroy", (void (*)()));
-          BIND_SYMBOL(dl_handle, blosc_set_compressor, "blosc_set_compressor", (int (*)(const char *)));
-          BIND_SYMBOL(dl_handle, blosc_compress, "blosc_compress", (int (*)(int, int, size_t, size_t, const void *, void *, size_t)));
-          BIND_SYMBOL(dl_handle, blosc_decompress, "blosc_decompress", (int (*)(const void *, void *, size_t)));
+          BIND_SYMBOL(dl_handle, blosc_compress_ctx, "blosc_compress_ctx", (int (*)(int, int, size_t, size_t, const void *, void *, size_t, const char *, size_t, int)));
+          BIND_SYMBOL(dl_handle, blosc_decompress_ctx, "blosc_decompress_ctx", (int (*)(const void *, void *, size_t, int)));
         } else {
           throw std::system_error(ECANCELED, std::generic_category(), dl_error_ + " Blosc library not found. Install Blosc and setup library paths.");
         }

@@ -50,56 +50,40 @@ int CodecBlosc::do_compress_tile(unsigned char* tile, size_t tile_size, void** t
     tile_compressed_ = realloc(tile_compressed_, compress_bound);
   }
 
-  // Initialize Blosc
-  blosc_init();
-
-  // Set the appropriate compressor
-  if(blosc_set_compressor(compressor_.c_str()) < 0) {
-    blosc_destroy();
-    return print_errmsg("Failed to set Blosc compressor");
-  } 
-
   // Compress tile
-  int blosc_size = 
-      blosc_compress(
+  int blosc_size =
+      blosc_compress_ctx(
           compression_level_, //clevel
           1, //doshuffle
           type_size_, //typesize
           tile_size, //nbytes
           tile, //src
-          static_cast<unsigned char*>(tile_compressed_), //dest 
-          tile_compressed_allocated_size_ //dest_size
+          static_cast<unsigned char*>(tile_compressed_), //dest
+          tile_compressed_allocated_size_, //dest_size
+          compressor_.c_str(), //compressor
+          0, //blocksize, chosen by Blosc
+          1 //numinternalthreads
                      );
   if(blosc_size < 0) {
-    blosc_destroy();
-    return print_errmsg("Failed compressing with Blosc");
+    return print_errmsg("Failed compressing with Blosc compressor " + compressor_);
   }
 
   *tile_compressed = tile_compressed_;
   tile_compressed_size = blosc_size;
-
-  // Clean up
-  blosc_destroy();
 
   // Success
   return TILEDB_CD_OK;
 }
 
 int CodecBlosc::do_decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size) {
-  // Initialization
-  blosc_init();
-
-  // Decompress tile 
-  if(blosc_decompress(
-         (const char*) tile_compressed, 
+  // Decompress tile
+  if(blosc_decompress_ctx(
+         (const char*) tile_compressed,
          (char*) tile,
-         tile_size) < 0) { 
-    blosc_destroy();
+         tile_size,
+         1) < 0) { //numinternalthreads
     return print_errmsg("Blosc decompression failed");
   }
-
-  // Clean up
-  blosc_destroy();
 
   // Success
   return TILEDB_CD_OK;
