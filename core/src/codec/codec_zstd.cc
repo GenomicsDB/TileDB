@@ -77,7 +77,7 @@ int CodecZStandard::do_compress_tile(unsigned char* tile, size_t tile_size, void
 
 int CodecZStandard::do_decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size) {
   // create zstd context per thread
-  thread_local std::unique_ptr<char, size_t(*)(char *)> zstd_dctx(ZSTD_createDCtx(), ZSTD_freeCCtx);
+  thread_local std::unique_ptr<char, size_t(*)(char *)> zstd_dctx(ZSTD_createDCtx(), ZSTD_freeDCtx);
   if (zstd_dctx.get() == nullptr) {
     return print_errmsg("Failed to create ZStd context for decompression");
   }
