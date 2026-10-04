@@ -254,8 +254,7 @@ TEST_CASE_METHOD(PosixFSTestFixture, "Test PosixFS parallel operations", "[paral
 }
 
 void test_locking_support(const std::string& disable_file_locking_value) {
-  std::string disable_file_locking_env = "TILEDB_DISABLE_FILE_LOCKING="+disable_file_locking_value;
-  CHECK(putenv(const_cast<char *>(disable_file_locking_env.c_str())) == 0);
+  CHECK(setenv("TILEDB_DISABLE_FILE_LOCKING", disable_file_locking_value.c_str(), 1) == 0);
   const char *value = disable_file_locking_value.c_str();
   const char *env_value = getenv("TILEDB_DISABLE_FILE_LOCKING");
   REQUIRE(env_value != NULL);
@@ -268,7 +267,10 @@ void test_locking_support(const std::string& disable_file_locking_value) {
   }
 }
 
+// Test cases can run in any order, so those that depend on TILEDB_DISABLE_FILE_LOCKING or
+// TILEDB_KEEP_FILE_HANDLES_OPEN start and end with them unset
 TEST_CASE("Test locking support", "[locking_support]") {
+  unsetenv("TILEDB_DISABLE_FILE_LOCKING");
   PosixFS fs;
   CHECK(!fs.disable_file_locking()); // default
   CHECK(fs.locking_support());
@@ -288,11 +290,11 @@ TEST_CASE("Test locking support", "[locking_support]") {
   test_locking_support("false");
   test_locking_support("FALSE");
   test_locking_support("Gibberish");
+  unsetenv("TILEDB_DISABLE_FILE_LOCKING");
 }
 
 void test_keep_file_handles_open_support(const std::string& keep_file_handles_open_value) {
-  std::string keep_file_handles_open_env = "TILEDB_KEEP_FILE_HANDLES_OPEN="+keep_file_handles_open_value;
-  CHECK(putenv(const_cast<char *>(keep_file_handles_open_env.c_str())) == 0);
+  CHECK(setenv("TILEDB_KEEP_FILE_HANDLES_OPEN", keep_file_handles_open_value.c_str(), 1) == 0);
   const char *value = keep_file_handles_open_value.c_str();
   const char *env_value = getenv("TILEDB_KEEP_FILE_HANDLES_OPEN");
   REQUIRE(env_value != NULL);
@@ -306,6 +308,7 @@ void test_keep_file_handles_open_support(const std::string& keep_file_handles_op
 }
 
 TEST_CASE("Test keep file handles open", "[keep_file_handles_open_support]") {
+  unsetenv("TILEDB_KEEP_FILE_HANDLES_OPEN");
   PosixFS fs;
   CHECK(!fs.keep_write_file_handles_open()); // default
   fs.set_keep_write_file_handles_open(true);
@@ -322,6 +325,7 @@ TEST_CASE("Test keep file handles open", "[keep_file_handles_open_support]") {
   test_keep_file_handles_open_support("false");
   test_keep_file_handles_open_support("FALSE");
   test_keep_file_handles_open_support("Gibberish");
+  unsetenv("TILEDB_KEEP_FILE_HANDLES_OPEN");
 }
 
 TEST_CASE("Test writing with keeps file descriptors open until explicitly closed", "[write_keep_file_handles_open]") {
@@ -374,6 +378,7 @@ TEST_CASE("Test writing with keeps file descriptors open until explicitly closed
   CHECK_RC(fs1.delete_dir(test_dir), TILEDB_FS_OK);
 
   free(buffer);
+  unsetenv("TILEDB_KEEP_FILE_HANDLES_OPEN");
 }
 
 
