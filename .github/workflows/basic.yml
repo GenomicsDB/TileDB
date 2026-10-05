@@ -75,8 +75,8 @@ jobs:
       run: |
         case "${{matrix.type}}" in
           gcs) available=${{secrets.R_NEW_TAR != ''}} ;;
-          azure) available=${{secrets.AZ_TAR != ''}} ;;
-          aws) available=${{secrets.AWS_ACCESS_KEY_ID != ''}} ;;
+          azure) available=${{secrets.R_NEW_TAR != '' && secrets.AZ_TAR != ''}} ;;
+          aws) available=${{secrets.AWS_ACCESS_KEY_ID != '' && secrets.AWS_SECRET_ACCESS_KEY != ''}} ;;
           *) available=true ;;
         esac
         echo "available=$available" >> "$GITHUB_OUTPUT"
