@@ -193,6 +193,11 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
 
+# char is signed on x86-64 and Apple arm64 but unsigned on other ARM targets.
+# TILEDB_EMPTY_CHAR (CHAR_MAX) marks missing char values on disk, so char is signed
+# everywhere to keep arrays interchangeable between platforms.
+add_compile_options(-fsigned-char)
+
 # Set compiler flags
 set(CMAKE_CXX_FLAGS_DEBUG "-DDEBUG -g3 -gdwarf-3 -Wall")
 set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -O3 -fvisibility=hidden")
@@ -256,6 +261,9 @@ endif()
 
 # Build TileDB library
 add_subdirectory(core)
+# Code that includes TileDB's headers must agree with it on TILEDB_EMPTY_CHAR
+target_compile_options(tiledb_static INTERFACE -fsigned-char)
+target_compile_options(tiledb_shared INTERFACE -fsigned-char)
 
 # Enable testing
 if(NOT TILEDB_DISABLE_TESTS)

@@ -595,6 +595,11 @@ TEST_CASE("Test empty value concept", "[empty_cell_val]") {
 
 }
 
+TEST_CASE("Missing char values are marked the same way on every platform", "[empty_cell_val]") {
+  // CHAR_MAX is 127 only where char is signed, as TileDB is built everywhere
+  CHECK(get_tiledb_empty_value<char>() == 127);
+}
+
 TEST_CASE("Test storage URIs", "[storage_uris]") {
   CHECK(!is_supported_cloud_path("gibberish://ddd/d"));
 
