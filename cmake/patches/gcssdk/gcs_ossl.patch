@@ -11,7 +11,7 @@
  #include <cstring>
  
  namespace google {
-@@ -24,13 +24,31 @@
+@@ -24,13 +24,25 @@
  namespace storage {
  inline namespace STORAGE_CLIENT_NS {
  std::string ComputeMD5Hash(std::string const& payload) {
@@ -31,20 +31,14 @@
 +    return internal::Base64Encode(hash);
 +
 +  } else {
-+    EVP_MD_CTX* mdctx;
-+    unsigned int md5_digest_len = 0;
-+    md5_digest_len = EVP_MD_get_size(EVP_sha1());
-+    unsigned char *md5_digest = (unsigned char *)malloc(md5_digest_len);
-+
-+    mdctx = EVP_MD_CTX_new();
++    EVP_MD_CTX* mdctx = EVP_MD_CTX_new();
 +    EVP_DigestInit_ex(mdctx, EVP_md5(), NULL);
-+
 +    EVP_DigestUpdate(mdctx, payload.c_str(), payload.size());
-+    EVP_DigestFinal_ex(mdctx, md5_digest, &md5_digest_len);
++
++    std::string hash(MD5_DIGEST_LENGTH, ' ');
++    EVP_DigestFinal_ex(mdctx, reinterpret_cast<unsigned char*>(&hash[0]), NULL);
 +    EVP_MD_CTX_free(mdctx);
-+    auto encoded_hash = internal::Base64Encode(std::string((char*)md5_digest));
-+    free(md5_digest);
-+    return encoded_hash;
++    return internal::Base64Encode(hash);
 +  }
  }
  
@@ -104,7 +98,7 @@
  }
  
  void MD5HashValidator::ProcessMetadata(ObjectMetadata const& meta) {
-@@ -59,11 +71,23 @@
+@@ -59,11 +71,20 @@
  }
  
  HashValidator::Result MD5HashValidator::Finish() && {
@@ -120,12 +114,9 @@
 +    bool is_mismatch = !received_hash_.empty() && (received_hash_ != computed);
 +    return Result{std::move(received_hash_), std::move(computed), is_mismatch};
 +  } else {
-+    unsigned int md5_digest_len = 0;
-+    md5_digest_len = EVP_MD_get_size(EVP_sha1());
-+    unsigned char *md5_digest = (unsigned char *)malloc(md5_digest_len);
-+    EVP_DigestFinal_ex(evp_context_, md5_digest, &md5_digest_len);
-+    auto computed = Base64Encode(std::string((char*)md5_digest));
-+    free(md5_digest);
++    std::string hash(MD5_DIGEST_LENGTH, ' ');
++    EVP_DigestFinal_ex(evp_context_, reinterpret_cast<unsigned char*>(&hash[0]), NULL);
++    auto computed = Base64Encode(hash);
 +    bool is_mismatch = !received_hash_.empty() && (received_hash_ != computed);
 +    EVP_MD_CTX_free(evp_context_);
 +    return Result{std::move(received_hash_), std::move(computed), is_mismatch};
@@ -148,7 +139,7 @@
  namespace google {
  namespace cloud {
  namespace storage {
-@@ -27,17 +27,33 @@
+@@ -27,17 +27,29 @@
  template <typename Byte,
            typename std::enable_if<sizeof(Byte) == 1, int>::type = 0>
  std::vector<std::uint8_t> Sha256Hash(Byte const* data, std::size_t count) {
@@ -180,14 +171,10 @@
 +    EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL);
 +    EVP_DigestUpdate(mdctx, data, count);
 +
-+    unsigned int md5_digest_len = 0;
-+    md5_digest_len = EVP_MD_get_size(EVP_sha1());
-+    unsigned char *md5_digest = (unsigned char *)malloc(md5_digest_len);
-+
-+    EVP_DigestFinal_ex(mdctx, md5_digest, &md5_digest_len);
++    std::array<unsigned char, SHA256_DIGEST_LENGTH> hash{};
++    EVP_DigestFinal_ex(mdctx, hash.data(), NULL);
 +    EVP_MD_CTX_free(mdctx);
-+    free(md5_digest);
-+    return {md5_digest, md5_digest + md5_digest_len};
++    return {hash.begin(), hash.end()};
 +  }
  }
  }  // namespace
