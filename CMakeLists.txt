@@ -31,9 +31,10 @@ cmake_minimum_required(VERSION 3.6)
 project(TileDB)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/Modules")
 
-# Update git submodules
+# Update TileDB's own git submodules. This directory, not CMAKE_SOURCE_DIR, which
+# is the parent project when TileDB is added as a subdirectory
 execute_process(COMMAND git submodule update --recursive --init
-		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 		RESULT_VARIABLE submodule_update_exit_code)
 if(NOT(submodule_update_exit_code EQUAL 0))
   message(FATAL_ERROR "Failure to recursively update git submodules")
@@ -135,6 +136,9 @@ set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${CURL_LIBRARIES})
 # Build Azure cpp lite client added as a dependency
 include_directories(${AZURE_FSCLIENT_SOURCE_DIR}/include ${AZURE_FSCLIENT_SOURCE_DIR}/adls/include)
 add_subdirectory(${AZURE_FSCLIENT_SOURCE_DIR})
+# blob_client_wrapper_init() passes NULL as a std::string, which newer compilers
+# reject under the library's -Werror; TileDB never calls it
+target_compile_options(azure-storage-lite PRIVATE -Wno-error=nonnull)
 set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} azure-storage-adls)
 
 # Build AWS S3 client static libraries
@@ -197,7 +201,7 @@ get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTO
 set(CMAKE_CXX_FLAGS_DEBUG "-DDEBUG -g3 -gdwarf-3 -Wall")
 set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -O3 -fvisibility=hidden")
 set(CMAKE_CXX_FLAGS_COVERAGE "-DDEBUG -g3 -gdwarf-3 --coverage")
-if(APPLE)
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-inconsistent-missing-override -Wno-vla-cxx-extension")
 else()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-literal-suffix")
