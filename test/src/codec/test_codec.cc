@@ -141,8 +141,6 @@ TEST_CASE("Test lz4", "[codec-lz4]") {
 }
 
 #ifdef ENABLE_ZSTD
-// The library defines the zstd function pointers
-#define ZSTD_EXTERN_DECL extern
 #include "codec_zstd.h"
 
 #include <string>

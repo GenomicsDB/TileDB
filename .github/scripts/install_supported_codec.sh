@@ -2,8 +2,7 @@
 
 INSTALL_DIR=${INSTALL_DIR:-/usr}
 
-# Install ZStd 
-sudo apt-get install -y zstd &&
+# ZStd is compiled into TileDB, so there is nothing to install
 export ENABLE_ZSTD=1
 
 # Install Blosc
