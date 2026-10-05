@@ -1,7 +1,7 @@
 # TileDB
 
-[![actions](https://github.com/OmicsDataAutomation/TileDB/workflows/build/badge.svg)](https://github.com/OmicsDataAutomation/TileDB/actions)
-[![codecov](https://codecov.io/gh/OmicsDataAutomation/TileDB/branch/master/graph/badge.svg)](https://codecov.io/gh/OmicsDataAutomation/TileDB)
+[![actions](https://github.com/GenomicsDB/TileDB/workflows/build/badge.svg)](https://github.com/GenomicsDB/TileDB/actions)
+[![codecov](https://codecov.io/gh/GenomicsDB/TileDB/branch/main/graph/badge.svg)](https://codecov.io/gh/GenomicsDB/TileDB)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 The installation guide for TileDB can be found at this [Github
