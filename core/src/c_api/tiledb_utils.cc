@@ -144,7 +144,7 @@ int initialize_workspace(TileDB_CTX **ptiledb_ctx, const std::string& workspace,
 
 #define RETURN_ERRMSG(MSG)                               \
   TILEDB_ERROR(TILEDB_UT_ERRMSG, MSG, tiledb_ut_errmsg); \
-  strcpy(tiledb_errmsg, tiledb_ut_errmsg.c_str());       \
+  set_tiledb_errmsg(tiledb_ut_errmsg);       \
   if (tiledb_ctx) {                                      \
     finalize(tiledb_ctx);                                \
   }                                                      \
@@ -152,7 +152,7 @@ int initialize_workspace(TileDB_CTX **ptiledb_ctx, const std::string& workspace,
 
 #define RETURN_ERRMSG_PATH(MSG, PATH)                          \
   SYSTEM_ERROR(TILEDB_UT_ERRMSG, MSG, PATH, tiledb_ut_errmsg); \
-  strcpy(tiledb_errmsg, tiledb_ut_errmsg.c_str());             \
+  set_tiledb_errmsg(tiledb_ut_errmsg);             \
   if (tiledb_ctx) {                                            \
     finalize(tiledb_ctx);                                      \
   }                                                            \
@@ -165,7 +165,7 @@ int initialize_workspace(TileDB_CTX **ptiledb_ctx, const std::string& workspace,
     posix_fs.delete_file(bookkeeping_path);                    \
   }                                                            \
   SYSTEM_ERROR(TILEDB_UT_ERRMSG, MSG, PATH, tiledb_ut_errmsg); \
-  strcpy(tiledb_errmsg, tiledb_ut_errmsg.c_str());             \
+  set_tiledb_errmsg(tiledb_ut_errmsg);             \
   if (tiledb_ctx) {                                            \
     finalize(tiledb_ctx);                                      \
   }                                                            \

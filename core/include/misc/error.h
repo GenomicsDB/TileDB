@@ -39,6 +39,9 @@
 #include <iostream>
 #include <string>
 
+/** Sets tiledb_errmsg, the C API's last error message, truncating errmsg to fit. */
+void set_tiledb_errmsg(const std::string& errmsg);
+
 #ifdef TILEDB_VERBOSE
 #  define PRINT_ERROR(x) std::cerr << x << std::endl
 #else
