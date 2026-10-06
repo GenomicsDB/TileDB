@@ -174,59 +174,37 @@ int tiledb_ctx_finalize(TileDB_CTX* tiledb_ctx) {
 /*          SANITY CHECKS         */
 /* ****************************** */
 
+/**
+ * Records the error for an invalid handle. Kept out of line so that the
+ * sanity_check() functions, called for every cell by the array iterator
+ * accessors, are small enough to inline.
+ */
+__attribute__((noinline)) static bool report_invalid(const char* errmsg) {
+  PRINT_ERROR(errmsg);
+  strcpy(tiledb_errmsg, (TILEDB_ERRMSG + std::string(errmsg)).c_str());
+  return false;
+}
+
 inline bool sanity_check(const TileDB_CTX* tiledb_ctx) {
-  if(tiledb_ctx == NULL || tiledb_ctx->storage_manager_ == NULL) {
-    std::string errmsg = "Invalid TileDB context";
-    PRINT_ERROR(errmsg);
-    strcpy(tiledb_errmsg, (TILEDB_ERRMSG + errmsg).c_str());
-    return false;
-  } else {
-    return true;
-  }
+  return (tiledb_ctx != NULL && tiledb_ctx->storage_manager_ != NULL)
+      || report_invalid("Invalid TileDB context");
 }
 
 inline bool sanity_check(const TileDB_Array* tiledb_array) {
-  if(tiledb_array == NULL) {
-    std::string errmsg = "Invalid TileDB array";
-    PRINT_ERROR(errmsg);
-    strcpy(tiledb_errmsg, (TILEDB_ERRMSG + errmsg).c_str());
-    return false;
-  } else {
-    return true;
-  }
+  return tiledb_array != NULL || report_invalid("Invalid TileDB array");
 }
 
 inline bool sanity_check(const TileDB_ArrayIterator* tiledb_array_it) {
-  if(tiledb_array_it == NULL) {
-    std::string errmsg = "Invalid TileDB array iterator";
-    PRINT_ERROR(errmsg);
-    strcpy(tiledb_errmsg, (TILEDB_ERRMSG + errmsg).c_str());
-    return false;
-  } else {
-    return true;
-  }
+  return tiledb_array_it != NULL || report_invalid("Invalid TileDB array iterator");
 }
 
 inline bool sanity_check(const TileDB_Metadata* tiledb_metadata) {
-  if(tiledb_metadata == NULL) {
-    std::string errmsg = "Invalid TileDB metadata";
-    PRINT_ERROR(errmsg);
-    strcpy(tiledb_errmsg, (TILEDB_ERRMSG + errmsg).c_str());
-    return false;
-  } else {
-    return true;
-  }
+  return tiledb_metadata != NULL || report_invalid("Invalid TileDB metadata");
 }
 
 inline bool sanity_check(const TileDB_MetadataIterator* tiledb_metadata_it) {
-  if(tiledb_metadata_it == NULL) {
-    std::string errmsg = "Invalid TileDB metadata iterator";
-    PRINT_ERROR(errmsg);
-    strcpy(tiledb_errmsg, (TILEDB_ERRMSG + errmsg).c_str());
-    return false;
-  } else {
-    return true;
-  }
+  return tiledb_metadata_it != NULL
+      || report_invalid("Invalid TileDB metadata iterator");
 }
 
 
