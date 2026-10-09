@@ -92,15 +92,18 @@ elseif(NOT AWSSDK_FOUND)
 
   ExternalProject_Add(aws-c-common-build
     URL "https://github.com/awslabs/aws-c-common/archive/v0.6.9.tar.gz"
+    URL_HASH SHA256=928a3e36f24d1ee46f9eec360ec5cebfe8b9b8994fe39d4fa74ff51aebb12717
     CMAKE_ARGS ${AWSSDK_COMMON_CMAKE_ARGS})
 
   ExternalProject_Add(aws-checksums-build
     URL "https://github.com/awslabs/aws-checksums/archive/v0.1.12.tar.gz"
+    URL_HASH SHA256=394723034b81cc7cd528401775bc7aca2b12c7471c92350c80a0e2fb9d2909fe
     CMAKE_ARGS ${AWSSDK_COMMON_CMAKE_ARGS}
     DEPENDS aws-c-common-build)
   
   ExternalProject_Add(aws-c-event-stream-build
     URL "https://github.com/awslabs/aws-c-event-stream/archive/v0.1.5.tar.gz"
+    URL_HASH SHA256=f1b423a487b5d6dca118bfc0d0c6cc596dc476b282258a3228e73a8f730422d4
     CMAKE_ARGS ${AWSSDK_COMMON_CMAKE_ARGS}
     DEPENDS aws-checksums-build)
 
@@ -108,9 +111,13 @@ elseif(NOT AWSSDK_FOUND)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-maybe-uninitialized -Wno-deprecated-declarations")
   endif()
 
+  if(AWSSDK_URL_HASH)
+    set(AWSSDK_URL_HASH_ARGS URL_HASH ${AWSSDK_URL_HASH})
+  endif()
   ExternalProject_Add(awssdk-build
     PREFIX ${AWSSDK_PREFIX}
     URL ${AWSSDK_URL}
+    ${AWSSDK_URL_HASH_ARGS}
     PATCH_COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/core/include/misc/tiledb_openssl_shim.h 
                   ${AWSSDK_PREFIX}/src/awssdk-build/aws-cpp-sdk-core/include/aws/core/utils/crypto/openssl &&
                   patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/awssdk/build.patch &&

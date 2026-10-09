@@ -38,7 +38,7 @@ on:
 
 env:
   CMAKE_BUILD_DIR: ${{github.workspace}}/build
-  AWSSDK_VER: 1.8.x
+  AWSSDK_VER: 1.8.187
   GCSSDK_VER: v1.24.0
   
 jobs:
