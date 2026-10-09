@@ -67,9 +67,12 @@
 std::string tiledb_rs_errmsg = "";
 
 /**
- * Number of attribute file descriptors held open by all ReadState objects.
- * Bounded so that workspaces with many fragments cannot exhaust the process
- * descriptor limit; see open_attribute_file().
+ * Number of attribute file descriptors held open by all ReadState objects, on
+ * every thread. Bounded so that workspaces with many fragments cannot exhaust
+ * the process descriptor limit; see open_attribute_file(). It changes only when
+ * a ReadState opens or closes an attribute file, never when it reads a tile from
+ * a file it holds, so concurrent reads update it no more often than they call
+ * open() and close(), which cost far more.
  */
 static std::atomic<int64_t> num_held_file_descriptors(0);
 
