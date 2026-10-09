@@ -45,20 +45,18 @@ add_library(TILEDB_CORE_OBJECTS OBJECT ${TILEDB_CORE_SOURCES})
 set_property(TARGET TILEDB_CORE_OBJECTS PROPERTY POSITION_INDEPENDENT_CODE ON)
 set(TILEDB_OBJECTS $<TARGET_OBJECTS:TILEDB_CORE_OBJECTS>)
 
-if(ENABLE_ZSTD)
-    # Build the zstd library the way its own build/cmake does, minus the
-    # dictionary builder and legacy formats. Its symbols are hidden so they
-    # neither clash with nor bind to another zstd loaded in the same process.
-    # The x86-64 assembly compiles to nothing on other architectures.
-    enable_language(ASM)
-    file(GLOB ZSTD_SOURCES "${ZSTD_LIB_DIR}/common/*.c" "${ZSTD_LIB_DIR}/compress/*.c"
-         "${ZSTD_LIB_DIR}/decompress/*.c" "${ZSTD_LIB_DIR}/decompress/huf_decompress_amd64.S")
-    add_library(ZSTD_OBJECTS OBJECT ${ZSTD_SOURCES})
-    set_target_properties(ZSTD_OBJECTS PROPERTIES POSITION_INDEPENDENT_CODE ON C_VISIBILITY_PRESET hidden)
-    target_compile_definitions(ZSTD_OBJECTS PRIVATE ZSTDLIB_VISIBLE= ZSTDERRORLIB_VISIBLE=)
-    target_include_directories(TILEDB_CORE_OBJECTS PRIVATE "${ZSTD_LIB_DIR}")
-    list(APPEND TILEDB_OBJECTS $<TARGET_OBJECTS:ZSTD_OBJECTS>)
-endif()
+# Build the zstd library the way its own build/cmake does, minus the
+# dictionary builder and legacy formats. Its symbols are hidden so they
+# neither clash with nor bind to another zstd loaded in the same process.
+# The x86-64 assembly compiles to nothing on other architectures.
+enable_language(ASM)
+file(GLOB ZSTD_SOURCES "${ZSTD_LIB_DIR}/common/*.c" "${ZSTD_LIB_DIR}/compress/*.c"
+     "${ZSTD_LIB_DIR}/decompress/*.c" "${ZSTD_LIB_DIR}/decompress/huf_decompress_amd64.S")
+add_library(ZSTD_OBJECTS OBJECT ${ZSTD_SOURCES})
+set_target_properties(ZSTD_OBJECTS PROPERTIES POSITION_INDEPENDENT_CODE ON C_VISIBILITY_PRESET hidden)
+target_compile_definitions(ZSTD_OBJECTS PRIVATE ZSTDLIB_VISIBLE= ZSTDERRORLIB_VISIBLE=)
+target_include_directories(TILEDB_CORE_OBJECTS PRIVATE "${ZSTD_LIB_DIR}")
+list(APPEND TILEDB_OBJECTS $<TARGET_OBJECTS:ZSTD_OBJECTS>)
 
 add_dependencies(TILEDB_CORE_OBJECTS awssdk-ep)
 add_dependencies(TILEDB_CORE_OBJECTS gcssdk-ep)

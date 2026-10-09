@@ -140,7 +140,6 @@ TEST_CASE("Test lz4", "[codec-lz4]") {
   delete lz4;
 }
 
-#ifdef ENABLE_ZSTD
 #include "codec_zstd.h"
 
 #include <string>
@@ -217,7 +216,6 @@ TEST_CASE("zstd round-trips tiles on threads that then exit", "[codec-zstd]") {
   for (auto& thread : threads) thread.join();
   for (const auto& result : results) CHECK(result == tile);
 }
-#endif
 
 TEST_CASE("Test plugin", "[codec-plugin]") {
   int compression_type = 15;

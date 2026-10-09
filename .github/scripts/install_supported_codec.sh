@@ -2,9 +2,6 @@
 
 INSTALL_DIR=${INSTALL_DIR:-/usr}
 
-# ZStd is compiled into TileDB, so there is nothing to install
-export ENABLE_ZSTD=1
-
 # Install Blosc
 echo "Installing Blosc..."
 pushd `pwd`

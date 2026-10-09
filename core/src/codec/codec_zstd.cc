@@ -30,8 +30,6 @@
  * This file implements codec for Zstandard for compression and decompression.
  */
 
-#ifdef ENABLE_ZSTD
-
 #include "codec_zstd.h"
 
 #include <memory>
@@ -94,7 +92,3 @@ int CodecZStandard::do_decompress_tile(unsigned char* tile_compressed,  size_t t
   // Success
   return TILEDB_CD_OK;
 }
-
-#else
-
-#endif /* ENABLE_ZSTD */

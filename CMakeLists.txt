@@ -40,7 +40,6 @@ if(NOT(submodule_update_exit_code EQUAL 0))
 endif()
 
 set(ENABLE_BLOSC False CACHE BOOL "Enable blosc compression")
-set(ENABLE_ZSTD False CACHE BOOL "Enable zstd compression")
 set(LIBUUID_DIR "" CACHE PATH "Path to libuuid install directory")
 set(HDFS_SOURCE_DIR "deps/HDFSWrapper/hadoop-hdfs-native" CACHE PATH "Path to modified libhdfs source dir")
 set(AZURE_FSCLIENT_SOURCE_DIR "deps/azure-storage-cpplite" CACHE PATH "Path to modified azure cpp client")
@@ -119,16 +118,13 @@ if(ENABLE_BLOSC)
 endif()
 # ZStd is compiled into TileDB from a pinned release (see core/CMakeLists.txt),
 # so TileDB never depends on a libzstd being installed at run time
-if(ENABLE_ZSTD)
-    include(FetchContent)
-    FetchContent_Declare(zstd
-        URL https://github.com/facebook/zstd/releases/download/v1.5.7/zstd-1.5.7.tar.gz
-        URL_HASH SHA256=eb33e51f49a15e023950cd7825ca74a4a2b43db8354825ac24fc1b7ee09e6fa3)
-    # The release has no top-level CMakeLists.txt, so this only downloads the source
-    FetchContent_MakeAvailable(zstd)
-    set(ZSTD_LIB_DIR "${zstd_SOURCE_DIR}/lib")
-    add_definitions(-DENABLE_ZSTD)
-endif()
+include(FetchContent)
+FetchContent_Declare(zstd
+    URL https://github.com/facebook/zstd/releases/download/v1.5.7/zstd-1.5.7.tar.gz
+    URL_HASH SHA256=eb33e51f49a15e023950cd7825ca74a4a2b43db8354825ac24fc1b7ee09e6fa3)
+# The release has no top-level CMakeLists.txt, so this only downloads the source
+FetchContent_MakeAvailable(zstd)
+set(ZSTD_LIB_DIR "${zstd_SOURCE_DIR}/lib")
 
 find_package(OpenSSL REQUIRED)
 include_directories(${OPENSSL_INCLUDE_DIR})

@@ -32,9 +32,7 @@
 
 #include "codec.h"
 #include "codec_gzip.h"
-#ifdef ENABLE_ZSTD
-#  include "codec_zstd.h"
-#endif
+#include "codec_zstd.h"
 #include "codec_lz4.h"
 #ifdef ENABLE_BLOSC
 #  include "codec_blosc.h"
@@ -149,11 +147,9 @@ Codec* Codec::create(const ArraySchema* array_schema, const int attribute_id, co
     case TILEDB_GZIP:
       codec = new CodecGzip(compression_level);
       break;
-#ifdef ENABLE_ZSTD
     case TILEDB_ZSTD:
       codec = new CodecZStandard(compression_level);
       break;
-#endif
     case TILEDB_LZ4:
       codec = new CodecLZ4(compression_level);
       break;
@@ -233,11 +229,9 @@ int Codec::create(void **handle, int compression_type, int compression_level) {
     case TILEDB_GZIP:
       *handle = new CodecGzip(compression_level);
       break;
-#ifdef ENABLE_ZSTD
     case TILEDB_ZSTD:
       *handle = new CodecZStandard(compression_level);
       break;
-#endif
     default:
       snprintf(tiledb_errmsg, TILEDB_ERRMSG_MAX_LEN, "Compression algorithm %d not supported", compression_type);
       *handle = NULL;

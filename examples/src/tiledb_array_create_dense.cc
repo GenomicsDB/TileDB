@@ -63,11 +63,7 @@ int main(int argc, char *argv[]) {
   const int compression[] = 
   { 
         TILEDB_GZIP,              // a1
-#ifdef ENABLE_ZSTD
         TILEDB_ZSTD,              // a2
-#else
-        TILEDB_GZIP,              // a2
-#endif
 #ifdef ENABLE_LZ4
         TILEDB_LZ4,               // a3
 #else
