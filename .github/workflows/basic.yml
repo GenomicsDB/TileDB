@@ -139,7 +139,7 @@ jobs:
         cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE \
                -DCMAKE_PREFIX_PATH=~/catch2-install \
                -DENABLE_BLOSC=$ENABLE_BLOSC \
-               -DAWSSDK_VERSION=$AWSSDK_VER -DGCSSDK_VERSION=$GCSSDK_VER $USE_HDFS
+               -DAWSSDK_VERSION=$AWSSDK_VER -DGCSSDK_VERSION=$GCSSDK_VER -DTILEDB_DEPS_INSTALL_DIR=$HOME $USE_HDFS
 
     - name: Install Prereqs and Configure CMake - MacOS
       if: startsWith(matrix.os, 'macOS')
@@ -167,7 +167,7 @@ jobs:
         brew install "$tap_name/cmake"
 
         cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE -DAWSSDK_VERSION=$AWSSDK_VER \
-              -DGCSSDK_VERSION=$GCSSDK_VER
+              -DGCSSDK_VERSION=$GCSSDK_VER -DTILEDB_DEPS_INSTALL_DIR=$HOME
         # GCS SDK needs OPENSSL_ROOT_DIR set for MAC, so build here
         make -j4
       env:
