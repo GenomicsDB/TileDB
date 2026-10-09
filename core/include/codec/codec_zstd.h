@@ -36,55 +36,10 @@
 
 #include "codec.h"
 
-// Function Pointers for ZStd
-#if !defined(ZSTD_EXTERN_DECL)
-#  define ZSTD_EXTERN_DECL
-#endif
-
-ZSTD_EXTERN_DECL size_t(*ZSTD_compressBound)(size_t);
-ZSTD_EXTERN_DECL int(*ZSTD_isError)(size_t);
-ZSTD_EXTERN_DECL char *(*ZSTD_getErrorName)(size_t);
-ZSTD_EXTERN_DECL int(*ZSTD_maxCLevel)(void);
-ZSTD_EXTERN_DECL size_t(*ZSTD_compress)(void *, size_t, const void *, size_t, int);
-ZSTD_EXTERN_DECL size_t(*ZSTD_decompress)(void *, size_t, const void *, size_t);
-
-ZSTD_EXTERN_DECL char *(*ZSTD_createCCtx)(void);
-ZSTD_EXTERN_DECL size_t(*ZSTD_freeCCtx)(char *);
-ZSTD_EXTERN_DECL size_t(*ZSTD_compressCCtx)(char *, void *, size_t, const void *, size_t, int);
-
-ZSTD_EXTERN_DECL char *(*ZSTD_createDCtx)(void);
-ZSTD_EXTERN_DECL size_t(*ZSTD_freeDCtx)(char *);
-ZSTD_EXTERN_DECL size_t(*ZSTD_decompressDCtx)(char *, void *, size_t, const void *, size_t);
-
 class CodecZStandard : public Codec {
  public:
 
   CodecZStandard(int compression_level):Codec(compression_level) {
-    static std::once_flag loaded;
-    static void *dl_handle = NULL;
-
-    std::call_once(loaded, [this]() {
-        dl_handle = get_dlopen_handle("zstd", "1");
-        if (dl_handle) {
-          BIND_SYMBOL(dl_handle, ZSTD_compressBound, "ZSTD_compressBound", (size_t(*)(size_t)));
-          BIND_SYMBOL(dl_handle, ZSTD_isError, "ZSTD_isError", (int(*)(size_t)));
-          BIND_SYMBOL(dl_handle, ZSTD_getErrorName, "ZSTD_getErrorName", (char *(*)(size_t)));
-          BIND_SYMBOL(dl_handle, ZSTD_maxCLevel, "ZSTD_maxCLevel", (int(*)(void)));
-          BIND_SYMBOL(dl_handle, ZSTD_compress, "ZSTD_compress", (size_t(*)(void *, size_t, const void *, size_t, int)));
-          BIND_SYMBOL(dl_handle, ZSTD_decompress, "ZSTD_decompress", (size_t(*)(void *, size_t, const void *, size_t)));
-
-          BIND_SYMBOL(dl_handle, ZSTD_createCCtx, "ZSTD_createCCtx", (char*(*)(void)));
-          BIND_SYMBOL(dl_handle, ZSTD_freeCCtx, "ZSTD_freeCCtx", (size_t(*)(char*)));
-          BIND_SYMBOL(dl_handle, ZSTD_compressCCtx, "ZSTD_compressCCtx", (size_t(*)(char *, void *, size_t, const void *, size_t, int)));
-
-          BIND_SYMBOL(dl_handle, ZSTD_createDCtx, "ZSTD_createDCtx", (char*(*)(void)));
-          BIND_SYMBOL(dl_handle, ZSTD_freeDCtx, "ZSTD_freeDCtx", (size_t(*)(char*)));
-          BIND_SYMBOL(dl_handle, ZSTD_decompressDCtx, "ZSTD_decompressDCtx", (size_t(*)(char *, void *, size_t, const void *, size_t)));
-        } else {
-          throw std::system_error(ECANCELED, std::generic_category(), dl_error_ + " ZStd library not found. Install ZStandard and/or setup library paths.");
-        }
-      });
-
     name_ = "ZSTD";
   }
 

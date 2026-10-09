@@ -128,7 +128,6 @@ jobs:
         sudo apt-get -y install zlib1g-dev libssl-dev uuid-dev libcurl4-openssl-dev
         # sudo apt-get -y install catch2
         INSTALL_DIR=~/catch2-install CATCH2_VER=$CATCH2_VER $GITHUB_WORKSPACE/.github/scripts/install_catch2.sh
-        export ENABLE_ZSTD=0
         export ENABLE_BLOSC=0
         if [[ ${{matrix.type}} == "basic-no-hdfs" ]]; then
           export USE_HDFS="-DUSE_HDFS=0"
@@ -139,7 +138,7 @@ jobs:
         echo "CMAKE VERSION=$(cmake --version)"
         cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE \
                -DCMAKE_PREFIX_PATH=~/catch2-install \
-               -DENABLE_ZSTD=$ENABLE_ZSTD -DENABLE_BLOSC=$ENABLE_BLOSC \
+               -DENABLE_BLOSC=$ENABLE_BLOSC \
                -DAWSSDK_VERSION=$AWSSDK_VER -DGCSSDK_VERSION=$GCSSDK_VER $USE_HDFS
 
     - name: Install Prereqs and Configure CMake - MacOS

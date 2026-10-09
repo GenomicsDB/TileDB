@@ -30,16 +30,14 @@
  * This file implements codec for Zstandard for compression and decompression.
  */
 
-#ifdef ENABLE_ZSTD
-
-#define ZSTD_EXTERN_DECL extern
 #include "codec_zstd.h"
 
 #include <memory>
+#include <zstd.h>
 
 int CodecZStandard::do_compress_tile(unsigned char* tile, size_t tile_size, void** tile_compressed, size_t& tile_compressed_size) {
   // create zstd context per thread 
-  thread_local std::unique_ptr<char, size_t(*)(char *)> zstd_cctx(ZSTD_createCCtx(), ZSTD_freeCCtx);
+  thread_local std::unique_ptr<ZSTD_CCtx, decltype(&ZSTD_freeCCtx)> zstd_cctx(ZSTD_createCCtx(), ZSTD_freeCCtx);
 
   if (zstd_cctx.get() == nullptr) {
     return print_errmsg("Failed to create ZStd context for compression");
@@ -77,7 +75,7 @@ int CodecZStandard::do_compress_tile(unsigned char* tile, size_t tile_size, void
 
 int CodecZStandard::do_decompress_tile(unsigned char* tile_compressed,  size_t tile_compressed_size, unsigned char* tile, size_t tile_size) {
   // create zstd context per thread
-  thread_local std::unique_ptr<char, size_t(*)(char *)> zstd_dctx(ZSTD_createDCtx(), ZSTD_freeDCtx);
+  thread_local std::unique_ptr<ZSTD_DCtx, decltype(&ZSTD_freeDCtx)> zstd_dctx(ZSTD_createDCtx(), ZSTD_freeDCtx);
   if (zstd_dctx.get() == nullptr) {
     return print_errmsg("Failed to create ZStd context for decompression");
   }
@@ -94,7 +92,3 @@ int CodecZStandard::do_decompress_tile(unsigned char* tile_compressed,  size_t t
   // Success
   return TILEDB_CD_OK;
 }
-
-#else
-
-#endif /* ENABLE_ZSTD */
