@@ -46,13 +46,18 @@ set(HDFS_SOURCE_DIR "deps/HDFSWrapper/hadoop-hdfs-native" CACHE PATH "Path to mo
 set(AZURE_FSCLIENT_SOURCE_DIR "deps/azure-storage-cpplite" CACHE PATH "Path to modified azure cpp client")
 set(MUPARSERX_SOURCE_DIR "deps/muparserx" CACHE PATH "Path to muparserx source")
 
-set(AWSSDK_VERSION "1.8.x" CACHE STRING "Version to aws sdk")
-set(AWSSDK_ROOT_DIR "$ENV{HOME}/awssdk-install/${AWSSDK_VERSION}" CACHE PATH "Path to aws sdk")
+# The SDKs are built in TILEDB_DEPS_INSTALL_DIR unless their ROOT_DIRs point at existing
+# installs. A parent project can point it outside the build tree to share them between builds.
+set(TILEDB_DEPS_INSTALL_DIR "${CMAKE_BINARY_DIR}" CACHE PATH "Directory the SDKs are built in when their ROOT_DIRs are not given")
+set(AWSSDK_VERSION "1.8.187" CACHE STRING "Version to aws sdk")
+set(AWSSDK_ROOT_DIR "${TILEDB_DEPS_INSTALL_DIR}/awssdk-install/${AWSSDK_VERSION}" CACHE PATH "Path to aws sdk")
 set(AWSSDK_URL "https://github.com/aws/aws-sdk-cpp/archive/${AWSSDK_VERSION}.zip" CACHE STRING "URL to aws-sdk-cpp github release")
+set(AWSSDK_URL_HASH "SHA256=7dfe63338631acfbfe31981924029bc359ba83fda2003a2af856facfc1b8242e" CACHE STRING "Hash of the aws-sdk-cpp download, or empty to skip the check")
 
 set(GCSSDK_VERSION "v1.24.0" CACHE STRING "Version to gcs sdk")
-set(GCSSDK_ROOT_DIR "$ENV{HOME}/gcssdk-install/${GCSSDK_VERSION}" CACHE PATH "Path to gcs sdk")
+set(GCSSDK_ROOT_DIR "${TILEDB_DEPS_INSTALL_DIR}/gcssdk-install/${GCSSDK_VERSION}" CACHE PATH "Path to gcs sdk")
 set(GCSSDK_URL "https://github.com/googleapis/google-cloud-cpp/archive/${GCSSDK_VERSION}.zip" CACHE STRING "URL to google-cloud-cpp github release")
+set(GCSSDK_URL_HASH "SHA256=37b840a14980d4b3bee55af039258f2c79132e5f5edfa13570899d201ffcf032" CACHE STRING "Hash of the google-cloud-cpp download, or empty to skip the check")
 
 # Set the following to true downstream when TileDB is added as a subdirectory 
 set(TILEDB_DISABLE_TESTS False CACHE BOOL "Disable TileDB Testing")

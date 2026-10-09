@@ -76,11 +76,15 @@ elseif(NOT GCSSDK_FOUND)
   if(CMAKE_OSX_DEPLOYMENT_TARGET)
     list(APPEND GCSSDK_COMMON_CMAKE_ARGS -DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET})
   endif()
-  # Use the same OpenSSL as TileDB; google-cloud-cpp otherwise insists on the
-  # OPENSSL_ROOT_DIR environment variable on macOS
+  # Use the same OpenSSL and libcurl as TileDB, which may be static libraries outside the default
+  # search paths; google-cloud-cpp otherwise insists on the OPENSSL_ROOT_DIR environment variable on macOS
   if(OPENSSL_ROOT_DIR)
     list(APPEND GCSSDK_COMMON_CMAKE_ARGS -DOPENSSL_ROOT_DIR=${OPENSSL_ROOT_DIR})
   endif()
+  if(OPENSSL_USE_STATIC_LIBS)
+    list(APPEND GCSSDK_COMMON_CMAKE_ARGS -DOPENSSL_USE_STATIC_LIBS=TRUE)
+  endif()
+  list(APPEND GCSSDK_COMMON_CMAKE_ARGS -DCURL_INCLUDE_DIR=${CURL_INCLUDE_DIR} -DCURL_LIBRARY=${CURL_LIBRARY})
 
   # Workaround for issues with semicolon separated substrings to ExternalProject_Add
   # https://discourse.cmake.org/t/how-to-pass-cmake-osx-architectures-to-externalproject-add/2262
@@ -98,6 +102,7 @@ elseif(NOT GCSSDK_FOUND)
   ExternalProject_Add(nlohmann-build
     PREFIX ${GCSSDK_PREFIX}
     URL "https://github.com/nlohmann/json/archive/v3.9.1.zip"
+    URL_HASH SHA256=a88449d68aab8d027c5beefe911ba217f5ffcc0686ae1793d37f3d20698b37c6
     CMAKE_ARGS ${GCSSDK_COMMON_CMAKE_ARGS}
     -DJSON_BuildTests=OFF)
 
@@ -105,6 +110,7 @@ elseif(NOT GCSSDK_FOUND)
   ExternalProject_Add(abseil-build
     PREFIX ${GCSSDK_PREFIX}
     URL "https://github.com/abseil/abseil-cpp/archive/20230802.1.zip"
+    URL_HASH SHA256=497ebdc3a4885d9209b9bd416e8c3f71e7a1fb8af249f6c2a80b7cbeefcd7e21
     PATCH_COMMAND patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/gcssdk/absl_config.patch
     CMAKE_ARGS ${GCSSDK_COMMON_CMAKE_ARGS}
         -DABSL_PROPAGATE_CXX_STD=ON
@@ -113,15 +119,20 @@ elseif(NOT GCSSDK_FOUND)
   ExternalProject_Add(crc32-build
     PREFIX ${GCSSDK_PREFIX}
     URL "https://github.com/google/crc32c/archive/1.1.2.tar.gz"
+    URL_HASH SHA256=ac07840513072b7fcebda6e821068aa04889018f24e10e46181068fb214d7e56
     CMAKE_ARGS ${GCSSDK_COMMON_CMAKE_ARGS}
         -DCRC32C_BUILD_TESTS=OFF
         -DCRC32C_BUILD_BENCHMARKS=OFF
         -DCRC32C_USE_GLOG=OFF
         -DCMAKE_CXX_STANDARD=11)
 
+  if(GCSSDK_URL_HASH)
+    set(GCSSDK_URL_HASH_ARGS URL_HASH ${GCSSDK_URL_HASH})
+  endif()
   ExternalProject_Add(gcssdk-build
     PREFIX ${GCSSDK_PREFIX}
     URL ${GCSSDK_URL}
+    ${GCSSDK_URL_HASH_ARGS}
     PATCH_COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/core/include/misc/tiledb_openssl_shim.h 
                      ${GCSSDK_PREFIX}/src/gcssdk-build/google/cloud/storage &&
                   patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/gcssdk/gcs_ossl.patch &&
