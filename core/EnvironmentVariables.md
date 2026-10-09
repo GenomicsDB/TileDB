@@ -6,6 +6,8 @@ The use of these Environment Variables will alter the behavior of TileDB. These 
      Relevant only for PosixFS. No read/write locks are maintained for arrays. If used, it is the responsibility of the client to ensure that creating/updating/deleting arrays and array fragments are done with utmost care.
 * TILEDB_KEEP_FILE_HANDLES_OPEN
      Relevant only for PosixFS. All file handles during writes are kept open until a PosixFS::close_file() is called.
+* TILEDB_MAX_CACHED_READ_FILE_HANDLES
+     Relevant only for PosixFS with the default mmap read method. An array open for reading keeps the attribute files it has read tiles from open until it is finalized, up to this many files across the process, shared by all arrays open for reading on every thread; past that, files are opened for each tile read. Defaults to half the soft limit on open files (RLIMIT_NOFILE); 0 opens files for each tile read.
 
 
 * TILEDB_UPLOAD_BUFFER_SIZE

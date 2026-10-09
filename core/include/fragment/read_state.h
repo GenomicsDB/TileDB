@@ -420,7 +420,15 @@ class ReadState {
   /** Cache attribute filesizes for fragment */
   std::vector<ssize_t> file_size_;
   std::vector<ssize_t> file_var_size_;
-  
+
+  /**
+   * Read-only descriptors of the attribute+coords files (and their variable
+   * sized counterparts) held open across tile reads by the mmap read method,
+   * or -1 if not held open.
+   */
+  std::vector<int> fds_;
+  std::vector<int> fds_var_;
+
   /** Compression per attribute */
   std::vector<Codec *> codec_;
   std::vector<Codec *> offsets_codec_;
@@ -441,10 +449,6 @@ class ReadState {
   std::vector<void*> map_addr_;
   /** The corresponding lengths of the buffers in map_addr_. */
   std::vector<size_t> map_addr_lengths_;
-  /** A buffer mapping a compressed tile from disk. */
-  void* map_addr_compressed_;
-  /** The corresponding length of the map_addr_compressed_ buffer. */
-  size_t map_addr_compressed_length_;
   /** 
    * A buffer for each attribute used by mmap for mapping a variable tile from
    * disk. 
@@ -712,31 +716,63 @@ class ReadState {
   /** Returns *true* if the file of the input attribute is empty. */
   bool is_empty_attribute(int attribute_id) const;
 
-  /** 
-   * Maps a tile from the disk for an attribute into a local buffer, using 
-   * memory map (mmap). This function works with any compression.
+  /**
+   * Returns a read-only descriptor for an attribute file, opening it if needed.
+   * The descriptor is held open until this ReadState is destroyed while the
+   * process-wide limit on held descriptors allows; otherwise the caller must
+   * close it after use.
+   *
+   * @param attribute_id The attribute (or coordinates) the file belongs to.
+   * @param is_var True for the file holding variable-sized cell values.
+   * @param filename The path of the file.
+   * @param close_after_use Set to true if the caller must close the descriptor.
+   * @return The descriptor, or -1 if the file could not be opened.
+   */
+  int open_attribute_file(
+      int attribute_id,
+      bool is_var,
+      const std::string& filename,
+      bool& close_after_use);
+
+  /**
+   * Reads a compressed tile for an attribute into tile_compressed_ with pread,
+   * from a descriptor held open across tiles where possible. Used by the mmap
+   * read method: compressed tiles are decompressed into a separate buffer, so
+   * mapping them saves no copy and costs an mmap/munmap pair per tile.
    *
    * @param attribute_id The id of the attribute the read occurs for.
    * @param offset The offset at which the tile starts in the file.
-   * @param tile_size The tile size. 
+   * @param tile_size The tile size.
    * @return TILEDB_RS_OK for success, and TILEDB_RS_ERR for error.
    */
-  int map_tile_from_file_cmp(
+  int pread_tile_from_file_cmp(
       int attribute_id,
       off_t offset,
       size_t tile_size);
 
-  /** 
-   * Maps a variable-sized tile from the disk for an attribute into a local 
-   * buffer, using memory map (mmap). This function works with any compression.
+  /**
+   * Same as pread_tile_from_file_cmp(), for a compressed variable-sized tile.
    *
    * @param attribute_id The id of the attribute the read occurs for.
    * @param offset The offset at which the tile starts in the file.
-   * @param tile_size The tile size. 
+   * @param tile_size The tile size.
    * @return TILEDB_RS_OK for success, and TILEDB_RS_ERR for error.
    */
-  int map_tile_from_file_var_cmp(
+  int pread_tile_from_file_var_cmp(
       int attribute_id,
+      off_t offset,
+      size_t tile_size);
+
+  /**
+   * Reads tile_size bytes at offset of an attribute file into tile_compressed_,
+   * growing it if needed; see open_attribute_file() for descriptor handling.
+   *
+   * @return TILEDB_RS_OK for success, and TILEDB_RS_ERR for error.
+   */
+  int pread_tile_from_file(
+      int attribute_id,
+      bool is_var,
+      const std::string& filename,
       off_t offset,
       size_t tile_size);
 
