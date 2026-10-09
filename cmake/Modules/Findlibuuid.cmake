@@ -28,16 +28,19 @@
 # Once done this will define
 # LIBUUID_FOUND - libuuid found
 
+# Kernel.framework also has uuid/uuid.h, and its Headers directory on the include
+# path shadows the SDK's C headers, so frameworks are not searched
+set(_LIBUUID_FIND_FRAMEWORK ${CMAKE_FIND_FRAMEWORK})
+set(CMAKE_FIND_FRAMEWORK NEVER)
 find_path(LIBUUID_INCLUDE_DIR NAMES uuid/uuid.h HINTS "${LIBUUID_DIR}/include" "${LIBUUID_DIR}")
+set(CMAKE_FIND_FRAMEWORK ${_LIBUUID_FIND_FRAMEWORK})
 
 if(APPLE)
   include(FindPackageHandleStandardArgs)
   find_package_handle_standard_args(libuuid "Could not find libuuid headers ${DEFAULT_MSG}" LIBUUID_INCLUDE_DIR)
 else()
-  find_path(LIBUUID_INCLUDE_DIR NAMES uuid/uuid.h HINTS "${LIBUUID_DIR}/include" "${LIBUUID_DIR}")
+  find_library(LIBUUID_LIBRARY NAMES uuid HINTS "${LIBUUID_DIR}/lib64" "${LIBUUID_DIR}/lib" "${LIBUUID_DIR}")
 
-find_library(LIBUUID_LIBRARY NAMES uuid HINTS "${LIBUUID_DIR}/lib64" "${LIBUUID_DIR}/lib" "${LIBUUID_DIR}")
-
-include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(libuuid "Could not find libuuid headers and/or libraries ${DEFAULT_MSG}" LIBUUID_INCLUDE_DIR LIBUUID_LIBRARY)
+  include(FindPackageHandleStandardArgs)
+  find_package_handle_standard_args(libuuid "Could not find libuuid headers and/or libraries ${DEFAULT_MSG}" LIBUUID_INCLUDE_DIR LIBUUID_LIBRARY)
 endif()

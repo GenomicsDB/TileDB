@@ -67,6 +67,21 @@ elseif(NOT GCSSDK_FOUND)
     -DCMAKE_INSTALL_LIBDIR=${CMAKE_INSTALL_LIBDIR}
     -DCMAKE_POSITION_INDEPENDENT_CODE=ON)
 
+  # The SDKs are built with the same compilers and deployment target as TileDB.
+  # CMake 4 refuses their cmake_minimum_required() of less than 3.5.
+  list(APPEND GCSSDK_COMMON_CMAKE_ARGS
+    -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+    -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+    -DCMAKE_POLICY_VERSION_MINIMUM=3.5)
+  if(CMAKE_OSX_DEPLOYMENT_TARGET)
+    list(APPEND GCSSDK_COMMON_CMAKE_ARGS -DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET})
+  endif()
+  # Use the same OpenSSL as TileDB; google-cloud-cpp otherwise insists on the
+  # OPENSSL_ROOT_DIR environment variable on macOS
+  if(OPENSSL_ROOT_DIR)
+    list(APPEND GCSSDK_COMMON_CMAKE_ARGS -DOPENSSL_ROOT_DIR=${OPENSSL_ROOT_DIR})
+  endif()
+
   # Workaround for issues with semicolon separated substrings to ExternalProject_Add
   # https://discourse.cmake.org/t/how-to-pass-cmake-osx-architectures-to-externalproject-add/2262
   if(CMAKE_OSX_ARCHITECTURES)
@@ -115,6 +130,8 @@ elseif(NOT GCSSDK_FOUND)
     CMAKE_ARGS ${GCSSDK_COMMON_CMAKE_ARGS}
         -DBUILD_TESTING=OFF
         -DGOOGLE_CLOUD_CPP_ENABLE=storage
+        -DGOOGLE_CLOUD_CPP_ENABLE_WERROR=OFF
+        -DGOOGLE_CLOUD_CPP_ENABLE_MACOS_OPENSSL_CHECK=OFF
         -DCMAKE_CXX_STANDARD=17
         -DCMAKE_CXX_VISIBILITY_PRESET=hidden
         -DCMAKE_CXX_FLAGS="-Wno-deprecated-declarations")
