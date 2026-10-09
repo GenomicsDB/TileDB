@@ -221,6 +221,20 @@ TEST_CASE_METHOD(ArraySchemaTestFixture, "Test Array Schema char", "[array_schem
   check_dense_array(array_name);
 }
 
+TEST_CASE_METHOD(ArraySchemaTestFixture, "A negative compression level is read back as negative",
+                 "[array_schema_compression_level]") {
+  std::string array_name = array_name_ + "gzip_default_level";
+
+  // With no compression levels given, GZIP gets its default, which is negative
+  REQUIRE(TILEDB_COMPRESSION_LEVEL_GZIP < 0);
+  REQUIRE(create_dense_array(array_name, TILEDB_INT32, TILEDB_GZIP) == TILEDB_OK);
+
+  TileDB_ArraySchema array_schema_disk;
+  REQUIRE(tiledb_array_load_schema(tiledb_ctx_, array_name.c_str(), &array_schema_disk) == TILEDB_OK);
+  CHECK(array_schema_disk.compression_level_[0] == TILEDB_COMPRESSION_LEVEL_GZIP);
+  REQUIRE(tiledb_array_free_schema(&array_schema_disk) == TILEDB_OK);
+}
+
 TEST_CASE_METHOD(ArraySchemaTestFixture, "Test Array Schema int8", "[array_schema_int8]") {
   std::string array_name = array_name_ + "int8";
 
