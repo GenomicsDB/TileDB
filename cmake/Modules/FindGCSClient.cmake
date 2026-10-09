@@ -76,11 +76,15 @@ elseif(NOT GCSSDK_FOUND)
   if(CMAKE_OSX_DEPLOYMENT_TARGET)
     list(APPEND GCSSDK_COMMON_CMAKE_ARGS -DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET})
   endif()
-  # Use the same OpenSSL as TileDB; google-cloud-cpp otherwise insists on the
-  # OPENSSL_ROOT_DIR environment variable on macOS
+  # Use the same OpenSSL and libcurl as TileDB, which may be static libraries outside the default
+  # search paths; google-cloud-cpp otherwise insists on the OPENSSL_ROOT_DIR environment variable on macOS
   if(OPENSSL_ROOT_DIR)
     list(APPEND GCSSDK_COMMON_CMAKE_ARGS -DOPENSSL_ROOT_DIR=${OPENSSL_ROOT_DIR})
   endif()
+  if(OPENSSL_USE_STATIC_LIBS)
+    list(APPEND GCSSDK_COMMON_CMAKE_ARGS -DOPENSSL_USE_STATIC_LIBS=TRUE)
+  endif()
+  list(APPEND GCSSDK_COMMON_CMAKE_ARGS -DCURL_INCLUDE_DIR=${CURL_INCLUDE_DIR} -DCURL_LIBRARY=${CURL_LIBRARY})
 
   # Workaround for issues with semicolon separated substrings to ExternalProject_Add
   # https://discourse.cmake.org/t/how-to-pass-cmake-osx-architectures-to-externalproject-add/2262

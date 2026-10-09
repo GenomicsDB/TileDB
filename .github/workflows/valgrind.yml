@@ -65,7 +65,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/gcssdk-install
-        key: gcssdk-${{env.GCSSDK_VER}}-${{env.ImageOS}}-${{env.ImageVersion}}-openssl-3-v2
+        key: gcssdk-${{env.GCSSDK_VER}}-${{env.ImageOS}}-${{env.ImageVersion}}-openssl-3-v3
         
     - name: Run valgrind
       shell: bash

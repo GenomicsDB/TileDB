@@ -77,7 +77,9 @@ target_link_options(tiledb_static PUBLIC ${TILEDB_LINK_OPTIONS})
 target_link_options(tiledb_shared PUBLIC ${TILEDB_LINK_OPTIONS})
 endif()
 
-target_link_libraries(tiledb_static muparserx azure-storage-adls ${AWSSDK_LINK_LIBRARIES} ${GCSSDK_LINK_LIBRARIES})
+# The SDKs' static libraries use libcurl and OpenSSL, so these follow them on the link line
+target_link_libraries(tiledb_static muparserx azure-storage-adls ${AWSSDK_LINK_LIBRARIES} ${GCSSDK_LINK_LIBRARIES}
+                      ${CURL_LIBRARIES} ${OPENSSL_LIBRARIES})
 target_link_libraries(tiledb_shared ${TILEDB_LIB_DEPENDENCIES})
 
 # Install libraries
