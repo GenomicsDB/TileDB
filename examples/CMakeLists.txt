@@ -58,7 +58,7 @@ add_custom_target(examples DEPENDS tiledb_static)
 add_dependencies(examples ${EXAMPLE_BINS})
 
 # Run a subset of examples for Continuous Integration Testing
-if(NOT TILEDB_DISABLE_TESTING)
+if(NOT TILEDB_DISABLE_TESTING AND NOT TILEDB_DISABLE_TESTS)
   set(CI_TESTS ${CMAKE_SOURCE_DIR}/examples/run_examples.sh &&
     echo "Running diff with expected_results" &&
     diff log ${CMAKE_SOURCE_DIR}/examples/expected_results &&
