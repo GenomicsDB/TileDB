@@ -39,7 +39,7 @@
 #include <stdint.h>
 
 /** Version. */
-#define TILEDB_VERSION                          "0.5.2"
+#define TILEDB_VERSION                          "0.6.0"
 
 /**@{*/
 /** Return code. */  
