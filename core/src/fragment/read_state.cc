@@ -35,12 +35,15 @@
 #include "utils.h"
 
 #include <algorithm>
+#include <atomic>
 #include <cassert>
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
 #include <iostream>
 #include <sys/mman.h>
+#include <sys/resource.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -62,6 +65,32 @@
 /* ****************************** */
 
 std::string tiledb_rs_errmsg = "";
+
+/**
+ * Number of attribute file descriptors held open by all ReadState objects, on
+ * every thread. Bounded so that workspaces with many fragments cannot exhaust
+ * the process descriptor limit; see open_attribute_file(). It changes only when
+ * a ReadState opens or closes an attribute file, never when it reads a tile from
+ * a file it holds, so concurrent reads update it no more often than they call
+ * open() and close(), which cost far more.
+ */
+static std::atomic<int64_t> num_held_file_descriptors(0);
+
+/**
+ * Limit on num_held_file_descriptors: TILEDB_MAX_CACHED_READ_FILE_HANDLES if
+ * set, otherwise half the soft RLIMIT_NOFILE, leaving the rest for everything
+ * else in the process. Only consulted when a file is first opened, so it is
+ * not cached.
+ */
+static int64_t max_held_file_descriptors() {
+  const char* env = getenv("TILEDB_MAX_CACHED_READ_FILE_HANDLES");
+  if (env)
+    return strtoll(env, NULL, 10);
+  struct rlimit rl;
+  if (getrlimit(RLIMIT_NOFILE, &rl) || rl.rlim_cur == RLIM_INFINITY)
+    return 1024;
+  return static_cast<int64_t>(rl.rlim_cur / 2);
+}
 
 
 
@@ -86,8 +115,6 @@ ReadState::ReadState(
   last_tile_coords_ = NULL;
   map_addr_.resize(attribute_num_+2);
   map_addr_lengths_.resize(attribute_num_+2);
-  map_addr_compressed_ = NULL;
-  map_addr_compressed_length_ = 0;
   map_addr_var_.resize(attribute_num_);
   map_addr_var_lengths_.resize(attribute_num_);
   search_tile_overlap_subarray_ = malloc(2*coords_size_);
@@ -138,6 +165,8 @@ ReadState::ReadState(
     file_size_[i] = fs->file_size(construct_filename(i));
     file_var_size_[i] = fs->file_size(construct_filename(i, /*is_var*/true));
   }
+  fds_.assign(attribute_num_+1, -1);
+  fds_var_.assign(attribute_num_+1, -1);
 
   // Setup file buffers for buffered reading per attribute+coords
   file_buffer_.resize(attribute_num_+1);
@@ -163,6 +192,16 @@ ReadState::ReadState(
 }
 
 ReadState::~ReadState() {
+  // Close attribute files held open across tile reads
+  for(auto fds : { &fds_, &fds_var_ }) {
+    for(auto fd : *fds) {
+      if(fd != -1) {
+        close(fd);
+        --num_held_file_descriptors;
+      }
+    }
+  }
+
   // Delete codec instances
   for(auto i=0u; i<codec_.size(); ++i) {
     if (codec_[i]) {
@@ -188,7 +227,7 @@ ReadState::~ReadState() {
       free(tiles_var_[i]);
   }
 
-  if(map_addr_compressed_ == NULL && tile_compressed_ != NULL)
+  if(tile_compressed_ != NULL)
     free(tile_compressed_);
 
   for(int i=0; i<int(map_addr_.size()); ++i) {
@@ -208,13 +247,6 @@ ReadState::~ReadState() {
       PRINT_ERROR(errmsg);
       tiledb_rs_errmsg = TILEDB_RS_ERRMSG + errmsg;
     }
-  }
-
-  if(map_addr_compressed_ != NULL &&  
-     munmap(map_addr_compressed_, map_addr_compressed_length_)) {
-    std::string errmsg = "Problem in finalizing ReadState; Memory unmap error";
-    PRINT_ERROR(errmsg);
-    tiledb_rs_errmsg = TILEDB_RS_ERRMSG + errmsg;
   }
 
   if(search_tile_overlap_subarray_ != NULL)
@@ -1800,81 +1832,68 @@ bool ReadState::is_empty_attribute(int attribute_id) const {
   return file_size_[attribute_id] == TILEDB_FS_ERR;
 }
 
-int ReadState::map_tile_from_file_cmp(
+int ReadState::open_attribute_file(
     int attribute_id,
+    bool is_var,
+    const std::string& filename,
+    bool& close_after_use) {
+  int& held_fd = is_var ? fds_var_[attribute_id] : fds_[attribute_id];
+  close_after_use = false;
+  if(held_fd != -1)
+    return held_fd;
+
+  int fd = open(filename.c_str(), O_RDONLY | O_CLOEXEC);
+  if(fd == -1)
+    return -1;
+
+  // Hold the descriptor for later tiles only if the process-wide limit allows
+  if(++num_held_file_descriptors <= max_held_file_descriptors()) {
+    held_fd = fd;
+  } else {
+    --num_held_file_descriptors;
+    close_after_use = true;
+  }
+  return fd;
+}
+
+int ReadState::pread_tile_from_file(
+    int attribute_id,
+    bool is_var,
+    const std::string& filename,
     off_t offset,
     size_t tile_size) {
-  // To handle the special case of the search tile
-  // The real attribute id corresponds to an actual attribute or coordinates 
-  int attribute_id_real = 
-      (attribute_id == attribute_num_+1) ? attribute_num_ : attribute_id;
-
-  // Unmap
-  if(map_addr_compressed_ != NULL) {
-    if(munmap(map_addr_compressed_, map_addr_compressed_length_)) {
-      std::string errmsg = 
-          "Cannot read tile from file with map; Memory unmap error";
-      PRINT_ERROR(errmsg);
-      tiledb_rs_errmsg = TILEDB_RS_ERRMSG + errmsg;
-      return TILEDB_RS_ERR;
-    }
+  // Potentially allocate or expand compressed tile buffer
+  if(tile_compressed_allocated_size_ < tile_size) {
+    tile_compressed_ = realloc(tile_compressed_, tile_size);
+    tile_compressed_allocated_size_ = tile_size;
   }
 
-  // Prepare attribute file name
-  std::string filename = 
-      fragment_->fragment_name() + "/" +
-      array_schema_->attribute(attribute_id_real) +
-      TILEDB_FILE_SUFFIX;
-
-  // Calculate offset considering the page size
-  size_t page_size = sysconf(_SC_PAGE_SIZE);
-  off_t start_offset = (offset / page_size) * page_size;
-  size_t extra_offset = offset - start_offset;
-  size_t new_length = tile_size + extra_offset;
-
-  // Open file
-  int fd = open(filename.c_str(), O_RDONLY);
+  bool close_fd;
+  int fd = open_attribute_file(attribute_id, is_var, filename, close_fd);
   if(fd == -1) {
-    munmap(map_addr_compressed_, map_addr_compressed_length_);
-    map_addr_compressed_ = NULL;
-    map_addr_compressed_length_ = 0;
-    tile_compressed_ = NULL;
     std::string errmsg = "Cannot read tile from file; File opening error";
     PRINT_ERROR(errmsg);
     tiledb_rs_errmsg = TILEDB_RS_ERRMSG + errmsg;
     return TILEDB_RS_ERR;
   }
 
-  // Map
-  map_addr_compressed_ = mmap(
-                             map_addr_compressed_, 
-                             new_length, 
-                             PROT_READ, 
-                             MAP_SHARED, 
-                             fd, 
-                             start_offset);
-  if(map_addr_compressed_ == MAP_FAILED) {
-    map_addr_compressed_ = NULL;
-    map_addr_compressed_length_ = 0;
-    tile_compressed_ = NULL;
-    std::string errmsg = "Cannot read tile from file; Memory map error";
-    PRINT_ERROR(errmsg);
-    tiledb_rs_errmsg = TILEDB_RS_ERRMSG + errmsg;
-    return TILEDB_RS_ERR;
+  size_t nbytes = 0;
+  while(nbytes < tile_size) {
+    ssize_t bytes_read = pread(
+        fd,
+        static_cast<char*>(tile_compressed_) + nbytes,
+        tile_size - nbytes,
+        offset + nbytes);
+    if(bytes_read <= 0)
+      break;
+    nbytes += bytes_read;
   }
-  map_addr_compressed_length_ = new_length;
 
-  // Set properly the compressed tile pointer
-  tile_compressed_ = 
-      static_cast<char*>(map_addr_compressed_) + extra_offset;
+  if(close_fd)
+    close(fd);
 
-  // Close file
-  if(close(fd)) {
-    munmap(map_addr_compressed_, map_addr_compressed_length_);
-    map_addr_compressed_ = NULL;
-    map_addr_compressed_length_ = 0;
-    tile_compressed_ = NULL;
-    std::string errmsg = "Cannot read tile from file; File closing error";
+  if(nbytes < tile_size) {
+    std::string errmsg = "Cannot read tile from file; File reading error";
     PRINT_ERROR(errmsg);
     tiledb_rs_errmsg = TILEDB_RS_ERRMSG + errmsg;
     return TILEDB_RS_ERR;
@@ -1883,88 +1902,31 @@ int ReadState::map_tile_from_file_cmp(
   return TILEDB_RS_OK;
 }
 
-int ReadState::map_tile_from_file_var_cmp(
+int ReadState::pread_tile_from_file_cmp(
     int attribute_id,
     off_t offset,
     size_t tile_size) {
-  // Unmap
-  if(map_addr_compressed_ != NULL) {
-    if(munmap(map_addr_compressed_, map_addr_compressed_length_)) {
-      std::string errmsg = 
-          "Cannot read tile from file with map; Memory unmap error";
-      PRINT_ERROR(errmsg);
-      tiledb_rs_errmsg = TILEDB_RS_ERRMSG + errmsg;
-      return TILEDB_RS_ERR;
-    }
-  }
+  // To handle the special case of the search tile
+  // The real attribute id corresponds to an actual attribute or coordinates 
+  int attribute_id_real = 
+      (attribute_id == attribute_num_+1) ? attribute_num_ : attribute_id;
 
-  // Prepare attribute file name
+  std::string filename = 
+      fragment_->fragment_name() + "/" +
+      array_schema_->attribute(attribute_id_real) +
+      TILEDB_FILE_SUFFIX;
+  return pread_tile_from_file(attribute_id_real, /*is_var*/false, filename, offset, tile_size);
+}
+
+int ReadState::pread_tile_from_file_var_cmp(
+    int attribute_id,
+    off_t offset,
+    size_t tile_size) {
   std::string filename = 
       fragment_->fragment_name() + "/" +
       array_schema_->attribute(attribute_id) + "_var" +
       TILEDB_FILE_SUFFIX;
-
-  // Calculate offset considering the page size
-  size_t page_size = sysconf(_SC_PAGE_SIZE);
-  off_t start_offset = (offset / page_size) * page_size;
-  size_t extra_offset = offset - start_offset;
-  size_t new_length = tile_size + extra_offset;
-
-  // Open file
-  int fd = open(filename.c_str(), O_RDONLY);
-  if(fd == -1) {
-    munmap(map_addr_compressed_, map_addr_compressed_length_);
-    map_addr_compressed_ = NULL;
-    map_addr_compressed_length_ = 0;
-    tile_compressed_ = NULL;
-    std::string errmsg = "Cannot read tile from file; File opening error";
-    PRINT_ERROR(errmsg);
-    tiledb_rs_errmsg = TILEDB_RS_ERRMSG + errmsg;
-    return TILEDB_RS_ERR;
-  }
-
-  // Map
-  // new_length could be 0 for variable length fields, mmap will fail
-  // if new_length == 0
-  if(new_length > 0u) {
-    map_addr_compressed_ = mmap(
-        map_addr_compressed_, 
-        new_length, 
-        PROT_READ, 
-        MAP_SHARED, 
-        fd, 
-        start_offset);
-    if(map_addr_compressed_ == MAP_FAILED) {
-      map_addr_compressed_ = NULL;
-      map_addr_compressed_length_ = 0;
-      tile_compressed_ = NULL;
-      std::string errmsg = "Cannot read tile from file; Memory map error";
-      PRINT_ERROR(errmsg);
-      tiledb_rs_errmsg = TILEDB_RS_ERRMSG + errmsg;
-      return TILEDB_RS_ERR;
-    }
-  } else {
-    map_addr_var_[attribute_id] = 0;
-  }
-  map_addr_compressed_length_ = new_length;
-
-  // Set properly the compressed tile pointer
-  tile_compressed_ = 
-      static_cast<char*>(map_addr_compressed_) + extra_offset;
-
-  // Close file
-  if(close(fd)) {
-    munmap(map_addr_compressed_, map_addr_compressed_length_);
-    map_addr_compressed_ = NULL;
-    map_addr_compressed_length_ = 0;
-    tile_compressed_ = NULL;
-    std::string errmsg = "Cannot read tile from file; File closing error";
-    PRINT_ERROR(errmsg);
-    tiledb_rs_errmsg = TILEDB_RS_ERRMSG + errmsg;
-    return TILEDB_RS_ERR;
-  }
-
-  return TILEDB_RS_OK;
+  return pread_tile_from_file(attribute_id, /*is_var*/true, filename, offset, tile_size);
 }
 
 int ReadState::map_tile_from_file_cmp_none(
@@ -2000,7 +1962,8 @@ int ReadState::map_tile_from_file_cmp_none(
   size_t new_length = tile_size + extra_offset;
 
   // Open file
-  int fd = open(filename.c_str(), O_RDONLY);
+  bool close_fd;
+  int fd = open_attribute_file(attribute_id_real, /*is_var*/false, filename, close_fd);
   if(fd == -1) {
     map_addr_[attribute_id] = NULL;
     map_addr_lengths_[attribute_id] = 0;
@@ -2035,7 +1998,7 @@ int ReadState::map_tile_from_file_cmp_none(
       static_cast<char*>(map_addr_[attribute_id]) + extra_offset;
 
   // Close file
-  if(close(fd)) {
+  if(close_fd && close(fd)) {
     munmap(map_addr_[attribute_id], map_addr_lengths_[attribute_id]);
     map_addr_[attribute_id] = NULL;
     map_addr_lengths_[attribute_id] = 0;
@@ -2080,7 +2043,8 @@ int ReadState::map_tile_from_file_var_cmp_none(
   size_t new_length = tile_size + extra_offset;
 
   // Open file
-  int fd = open(filename.c_str(), O_RDONLY);
+  bool close_fd;
+  int fd = open_attribute_file(attribute_id, /*is_var*/true, filename, close_fd);
   if(fd == -1) {
     map_addr_var_[attribute_id] = NULL;
     map_addr_var_lengths_[attribute_id] = 0;
@@ -2124,7 +2088,7 @@ int ReadState::map_tile_from_file_var_cmp_none(
   tiles_var_sizes_[attribute_id] = tile_size; 
 
   // Close file
-  if(close(fd)) {
+  if(close_fd && close(fd)) {
     munmap(map_addr_var_[attribute_id], map_addr_var_lengths_[attribute_id]);
     map_addr_var_[attribute_id] = NULL;
     map_addr_var_lengths_[attribute_id] = 0;
@@ -2294,7 +2258,7 @@ int ReadState::prepare_tile_for_reading_cmp(
          file_offset, 
          tile_compressed_size);
   } else if(read_method == TILEDB_IO_MMAP) {
-    rc = map_tile_from_file_cmp(
+    rc = pread_tile_from_file_cmp(
          attribute_id, 
          file_offset, 
          tile_compressed_size);
@@ -2439,7 +2403,7 @@ int ReadState::prepare_tile_for_reading_var_cmp(
          file_offset, 
          tile_compressed_size);
   } else if(read_method == TILEDB_IO_MMAP) {
-    rc = map_tile_from_file_cmp(
+    rc = pread_tile_from_file_cmp(
          attribute_id, 
          file_offset, 
          tile_compressed_size);
@@ -2517,7 +2481,7 @@ int ReadState::prepare_tile_for_reading_var_cmp(
                file_offset, 
                tile_compressed_size);
     } else if(read_method == TILEDB_IO_MMAP) {
-      rc = map_tile_from_file_var_cmp(
+      rc = pread_tile_from_file_var_cmp(
                attribute_id, 
               file_offset, 
               tile_compressed_size);
