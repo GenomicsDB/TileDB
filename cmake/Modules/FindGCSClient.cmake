@@ -133,7 +133,7 @@ elseif(NOT GCSSDK_FOUND)
     PREFIX ${GCSSDK_PREFIX}
     URL ${GCSSDK_URL}
     ${GCSSDK_URL_HASH_ARGS}
-    PATCH_COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/core/include/misc/tiledb_openssl_shim.h 
+    PATCH_COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/core/include/misc/tiledb_openssl_shim.h
                      ${GCSSDK_PREFIX}/src/gcssdk-build/google/cloud/storage &&
                   patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/gcssdk/gcs_ossl.patch &&
                   patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/gcssdk/gcc13.patch

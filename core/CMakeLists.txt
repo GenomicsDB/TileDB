@@ -27,9 +27,9 @@
 #
 
 # Include core header directories
-file(GLOB TILEDB_CORE_INCLUDE_DIRS "include/*" 
-	"src/codec/external/lz4"
-	"src/codec/external/bitshuffle")
+file(GLOB TILEDB_CORE_INCLUDE_DIRS "include/*"
+     "src/codec/external/lz4"
+     "src/codec/external/bitshuffle")
 include_directories(${TILEDB_CORE_INCLUDE_DIRS})
 
 # Gather the core source files
@@ -72,9 +72,9 @@ set_target_properties(tiledb_static tiledb_shared PROPERTIES OUTPUT_NAME "tiledb
 
 # See https://glandium.org/blog/?p=2764 for workaound for undefined weak symbols in MacOS
 if(APPLE)
-set(TILEDB_LINK_OPTIONS "-Wl,-U,_EVP_MAC_CTX_free;-Wl,-U,_EVP_MAC_CTX_new;-Wl,-U,_EVP_MAC_fetch;;-Wl,-U,_EVP_MAC_final;-Wl,-U,_EVP_MAC_free;-Wl,-U,_EVP_MAC_init;-Wl,-U,_EVP_MAC_update;-Wl,-U,_EVP_MD_get_size;-Wl,-U,_OSSL_PARAM_construct_end;-Wl,-U,_OSSL_PARAM_construct_utf8_string")
-target_link_options(tiledb_static PUBLIC ${TILEDB_LINK_OPTIONS})
-target_link_options(tiledb_shared PUBLIC ${TILEDB_LINK_OPTIONS})
+    set(TILEDB_LINK_OPTIONS "-Wl,-U,_EVP_MAC_CTX_free;-Wl,-U,_EVP_MAC_CTX_new;-Wl,-U,_EVP_MAC_fetch;;-Wl,-U,_EVP_MAC_final;-Wl,-U,_EVP_MAC_free;-Wl,-U,_EVP_MAC_init;-Wl,-U,_EVP_MAC_update;-Wl,-U,_EVP_MD_get_size;-Wl,-U,_OSSL_PARAM_construct_end;-Wl,-U,_OSSL_PARAM_construct_utf8_string")
+    target_link_options(tiledb_static PUBLIC ${TILEDB_LINK_OPTIONS})
+    target_link_options(tiledb_shared PUBLIC ${TILEDB_LINK_OPTIONS})
 endif()
 
 # The SDKs' static libraries use libcurl and OpenSSL, so these follow them on the link line
@@ -84,7 +84,7 @@ target_link_libraries(tiledb_shared ${TILEDB_LIB_DEPENDENCIES})
 
 # Install libraries
 install(
-    TARGETS tiledb_static tiledb_shared 
+    TARGETS tiledb_static tiledb_shared
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
 )

@@ -26,7 +26,7 @@
 # THE SOFTWARE.
 #
 
-cmake_minimum_required(VERSION 3.6)
+cmake_minimum_required(VERSION 3.19)
 
 project(TileDB)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/Modules")
@@ -34,8 +34,8 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/Modules")
 # Update TileDB's own git submodules. This directory, not CMAKE_SOURCE_DIR, which
 # is the parent project when TileDB is added as a subdirectory
 execute_process(COMMAND git submodule update --recursive --init
-		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-		RESULT_VARIABLE submodule_update_exit_code)
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                RESULT_VARIABLE submodule_update_exit_code)
 if(NOT(submodule_update_exit_code EQUAL 0))
   message(FATAL_ERROR "Failure to recursively update git submodules")
 endif()
@@ -59,7 +59,7 @@ set(GCSSDK_ROOT_DIR "${TILEDB_DEPS_INSTALL_DIR}/gcssdk-install/${GCSSDK_VERSION}
 set(GCSSDK_URL "https://github.com/googleapis/google-cloud-cpp/archive/${GCSSDK_VERSION}.zip" CACHE STRING "URL to google-cloud-cpp github release")
 set(GCSSDK_URL_HASH "SHA256=37b840a14980d4b3bee55af039258f2c79132e5f5edfa13570899d201ffcf032" CACHE STRING "Hash of the google-cloud-cpp download, or empty to skip the check")
 
-# Set the following to true downstream when TileDB is added as a subdirectory 
+# Set the following to true downstream when TileDB is added as a subdirectory
 set(TILEDB_DISABLE_TESTS False CACHE BOOL "Disable TileDB Testing")
 set(TILEDB_DISABLE_UNINSTALL False CACHE BOOL "Disable TileDB Uninstall")
 
@@ -252,7 +252,7 @@ if(COMPRESSION_LEVEL_GZIP)
 endif()
 if(COMPRESSION_LEVEL_ZSTD)
   add_definitions(-DTILEDB_COMPRESSION_LEVEL_ZSTD=${COMPRESSION_LEVEL_ZSTD})
-  message(STATUS 
+  message(STATUS
           "Set Zstandard compression level to ${COMPRESSION_LEVEL_ZSTD}."
 )
 endif()
@@ -286,13 +286,13 @@ if(DOXYGEN_FOUND)
   add_custom_command(
      OUTPUT ${CMAKE_BINARY_DIR}/doxyfile.in
       COMMAND mkdir -p doxygen
-      COMMAND echo INPUT = ${CMAKE_SOURCE_DIR}/doc/mainpage.dox 
+      COMMAND echo INPUT = ${CMAKE_SOURCE_DIR}/doc/mainpage.dox
               ${TILEDB_CORE_HEADERS} > ${CMAKE_BINARY_DIR}/doxyfile.in
       COMMAND echo FILE_PATTERNS = *.h >> ${CMAKE_BINARY_DIR}/doxyfile.in
       COMMENT "Preparing for Doxygen documentation" VERBATIM
   )
   add_custom_target(
-      doc ${DOXYGEN_EXECUTABLE} ${CMAKE_SOURCE_DIR}/doc/Doxyfile.mk > 
+      doc ${DOXYGEN_EXECUTABLE} ${CMAKE_SOURCE_DIR}/doc/Doxyfile.mk >
           ${CMAKE_BINARY_DIR}/Doxyfile.log 2>&1
       COMMENT "Generating API documentation with Doxygen" VERBATIM
       DEPENDS ${CMAKE_BINARY_DIR}/doxyfile.in
