@@ -39,7 +39,7 @@ env:
   CMAKE_BUILD_TYPE: Coverage
   CMAKE_BUILD_DIR: ${{github.workspace}}/build
   HADOOP_VER: 3.2.4
-  AWSSDK_VER: 1.8.x
+  AWSSDK_VER: 1.8.187
   GCSSDK_VER: v1.24.0
   # Only used to install Catch2 on Ubuntu from source
   # MacOS uses brew that installs v3.1.0
@@ -102,7 +102,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/gcssdk-install
-        key: gcssdk-${{env.GCSSDK_VER}}-${{matrix.os}}-openssl-${{matrix.openssl-version}}-v2
+        key: gcssdk-${{env.GCSSDK_VER}}-${{matrix.os}}-openssl-${{matrix.openssl-version}}-v3
 
     - name: Cache Catch2 artifacts
       if: startsWith(matrix.os,'ubuntu')
@@ -139,7 +139,7 @@ jobs:
         cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE \
                -DCMAKE_PREFIX_PATH=~/catch2-install \
                -DENABLE_BLOSC=$ENABLE_BLOSC \
-               -DAWSSDK_VERSION=$AWSSDK_VER -DGCSSDK_VERSION=$GCSSDK_VER $USE_HDFS
+               -DAWSSDK_VERSION=$AWSSDK_VER -DGCSSDK_VERSION=$GCSSDK_VER -DTILEDB_DEPS_INSTALL_DIR=$HOME $USE_HDFS
 
     - name: Install Prereqs and Configure CMake - MacOS
       if: startsWith(matrix.os, 'macOS')
@@ -167,7 +167,7 @@ jobs:
         brew install "$tap_name/cmake"
 
         cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE -DAWSSDK_VERSION=$AWSSDK_VER \
-              -DGCSSDK_VERSION=$GCSSDK_VER
+              -DGCSSDK_VERSION=$GCSSDK_VER -DTILEDB_DEPS_INSTALL_DIR=$HOME
         # GCS SDK needs OPENSSL_ROOT_DIR set for MAC, so build here
         make -j4
       env:
