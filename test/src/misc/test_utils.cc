@@ -567,8 +567,9 @@ TEST_CASE_METHOD(TempDir, "Test utils file system operations", "[test_utils_fs]"
 }
 
 TEST_CASE("Test empty value concept", "[empty_cell_val]") {
-  char char_max = get_tiledb_empty_value<char>();
-  CHECK(char_max == CHAR_MAX);
+  // The same on every platform, unlike CHAR_MAX
+  char char_empty = get_tiledb_empty_value<char>();
+  CHECK(char_empty == 0x7F);
 
   int8_t int8_max =  get_tiledb_empty_value<int8_t>();
   CHECK(int8_max == INT8_MAX);

@@ -31,16 +31,16 @@ cmake_minimum_required(VERSION 3.6)
 project(TileDB)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/Modules")
 
-# Update git submodules
+# Update TileDB's own git submodules. This directory, not CMAKE_SOURCE_DIR, which
+# is the parent project when TileDB is added as a subdirectory
 execute_process(COMMAND git submodule update --recursive --init
-		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 		RESULT_VARIABLE submodule_update_exit_code)
 if(NOT(submodule_update_exit_code EQUAL 0))
   message(FATAL_ERROR "Failure to recursively update git submodules")
 endif()
 
 set(ENABLE_BLOSC False CACHE BOOL "Enable blosc compression")
-set(ENABLE_ZSTD False CACHE BOOL "Enable zstd compression")
 set(LIBUUID_DIR "" CACHE PATH "Path to libuuid install directory")
 set(HDFS_SOURCE_DIR "deps/HDFSWrapper/hadoop-hdfs-native" CACHE PATH "Path to modified libhdfs source dir")
 set(AZURE_FSCLIENT_SOURCE_DIR "deps/azure-storage-cpplite" CACHE PATH "Path to modified azure cpp client")
@@ -110,19 +110,22 @@ set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${LIBUUID_LIBRARY})
 # include_directories(${LZ4_INCLUDE_DIR})
 # set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${LZ4_LIBRARIES})
 
-# Blosc and ZStd are dynamically loaded, so no need to perform find_package
+# Blosc is dynamically loaded, so no need to perform find_package
 if(ENABLE_BLOSC)
     # find_package(BLOSC REQUIRED)
     # include_directories(${BLOSC_INCLUDE_DIR})
     # set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${BLOSC_LIBRARIES})
     add_definitions(-DENABLE_BLOSC)
 endif()
-if(ENABLE_ZSTD)
-    # find_package(ZSTD REQUIRED)
-    # include_directories(${ZSTD_INCLUDE_DIR})
-    # set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${ZSTD_LIBRARIES})
-    add_definitions(-DENABLE_ZSTD)
-endif()
+# ZStd is compiled into TileDB from a pinned release (see core/CMakeLists.txt),
+# so TileDB never depends on a libzstd being installed at run time
+include(FetchContent)
+FetchContent_Declare(zstd
+    URL https://github.com/facebook/zstd/releases/download/v1.5.7/zstd-1.5.7.tar.gz
+    URL_HASH SHA256=eb33e51f49a15e023950cd7825ca74a4a2b43db8354825ac24fc1b7ee09e6fa3)
+# The release has no top-level CMakeLists.txt, so this only downloads the source
+FetchContent_MakeAvailable(zstd)
+set(ZSTD_LIB_DIR "${zstd_SOURCE_DIR}/lib")
 
 find_package(OpenSSL REQUIRED)
 include_directories(${OPENSSL_INCLUDE_DIR})
@@ -135,6 +138,9 @@ set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} ${CURL_LIBRARIES})
 # Build Azure cpp lite client added as a dependency
 include_directories(${AZURE_FSCLIENT_SOURCE_DIR}/include ${AZURE_FSCLIENT_SOURCE_DIR}/adls/include)
 add_subdirectory(${AZURE_FSCLIENT_SOURCE_DIR})
+# blob_client_wrapper_init() passes NULL as a std::string, which newer compilers
+# reject under the library's -Werror; TileDB never calls it
+target_compile_options(azure-storage-lite PRIVATE -Wno-error=nonnull)
 set(TILEDB_LIB_DEPENDENCIES ${TILEDB_LIB_DEPENDENCIES} azure-storage-adls)
 
 # Build AWS S3 client static libraries
@@ -197,7 +203,7 @@ get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTO
 set(CMAKE_CXX_FLAGS_DEBUG "-DDEBUG -g3 -gdwarf-3 -Wall")
 set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -O3 -fvisibility=hidden")
 set(CMAKE_CXX_FLAGS_COVERAGE "-DDEBUG -g3 -gdwarf-3 --coverage")
-if(APPLE)
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-inconsistent-missing-override -Wno-vla-cxx-extension")
 else()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-literal-suffix")

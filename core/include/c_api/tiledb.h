@@ -54,7 +54,8 @@
 #define TILEDB_ERRMSG std::string("[TileDB] Error: ")
 
 /** Maximum error message length. */
-#define TILEDB_ERRMSG_MAX_LEN 2000
+// Room for a message naming two paths of up to TILEDB_NAME_MAX_LEN; longer messages are truncated
+#define TILEDB_ERRMSG_MAX_LEN 8192
 
 
 

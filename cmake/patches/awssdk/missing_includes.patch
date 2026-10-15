@@ -1,0 +1,67 @@
+diff -ruN a/aws-cpp-sdk-core/include/aws/core/utils/base64/Base64.h b/aws-cpp-sdk-core/include/aws/core/utils/base64/Base64.h
+--- a/aws-cpp-sdk-core/include/aws/core/utils/base64/Base64.h	2026-09-29 22:35:56.798817177 +0000
++++ b/aws-cpp-sdk-core/include/aws/core/utils/base64/Base64.h	2026-09-29 22:35:56.802319011 +0000
+@@ -17,6 +17,7 @@
+ 
+ #endif // __APPLE__
+ 
++#include <cstdint>
+ #include <aws/core/Core_EXPORTS.h>
+ #include <aws/core/utils/Array.h>
+ #include <aws/core/utils/memory/stl/AWSString.h>
+diff -ruN a/aws-cpp-sdk-core/include/aws/core/utils/crypto/Cipher.h b/aws-cpp-sdk-core/include/aws/core/utils/crypto/Cipher.h
+--- a/aws-cpp-sdk-core/include/aws/core/utils/crypto/Cipher.h	2026-09-29 22:35:56.807795302 +0000
++++ b/aws-cpp-sdk-core/include/aws/core/utils/crypto/Cipher.h	2026-09-29 22:35:56.809209927 +0000
+@@ -5,6 +5,7 @@
+ 
+ #pragma once
+ 
++#include <cstdint>
+ #include <aws/core/Core_EXPORTS.h>
+ #include <aws/core/utils/Array.h>
+ #include <aws/core/utils/memory/stl/AWSStreamFwd.h>
+diff -ruN a/aws-cpp-sdk-core/include/aws/core/utils/crypto/Hash.h b/aws-cpp-sdk-core/include/aws/core/utils/crypto/Hash.h
+--- a/aws-cpp-sdk-core/include/aws/core/utils/crypto/Hash.h	2026-09-29 22:35:56.811319011 +0000
++++ b/aws-cpp-sdk-core/include/aws/core/utils/crypto/Hash.h	2026-09-29 22:35:56.813527136 +0000
+@@ -5,6 +5,7 @@
+ 
+ #pragma once
+ 
++#include <cstdint>
+ #include <aws/core/Core_EXPORTS.h>
+ #include <aws/core/utils/crypto/HashResult.h>
+ #include <aws/core/utils/memory/stl/AWSStreamFwd.h>
+diff -ruN a/aws-cpp-sdk-core/include/aws/core/utils/crypto/SecureRandom.h b/aws-cpp-sdk-core/include/aws/core/utils/crypto/SecureRandom.h
+--- a/aws-cpp-sdk-core/include/aws/core/utils/crypto/SecureRandom.h	2026-09-29 22:35:56.816438969 +0000
++++ b/aws-cpp-sdk-core/include/aws/core/utils/crypto/SecureRandom.h	2026-09-29 22:35:56.817794552 +0000
+@@ -3,6 +3,7 @@
+  * SPDX-License-Identifier: Apache-2.0.
+  */
+ #pragma once
++#include <cstdint>
+ #include <type_traits>
+ 
+ namespace Aws
+diff -ruN a/aws-cpp-sdk-core/source/utils/HashingUtils.cpp b/aws-cpp-sdk-core/source/utils/HashingUtils.cpp
+--- a/aws-cpp-sdk-core/source/utils/HashingUtils.cpp	2026-09-29 22:35:56.821657302 +0000
++++ b/aws-cpp-sdk-core/source/utils/HashingUtils.cpp	2026-09-29 22:35:56.822319011 +0000
+@@ -3,6 +3,8 @@
+  * SPDX-License-Identifier: Apache-2.0.
+  */
+ 
++#include <cstdint>
++#include <iterator>
+ #include <aws/core/utils/logging/LogMacros.h>
+ #include <aws/core/utils/HashingUtils.h>
+ #include <aws/core/utils/StringUtils.h>
+diff -ruN a/aws-cpp-sdk-core/source/utils/StringUtils.cpp b/aws-cpp-sdk-core/source/utils/StringUtils.cpp
+--- a/aws-cpp-sdk-core/source/utils/StringUtils.cpp	2026-09-29 22:35:56.826291011 +0000
++++ b/aws-cpp-sdk-core/source/utils/StringUtils.cpp	2026-09-29 22:35:56.827785927 +0000
+@@ -4,6 +4,7 @@
+  */
+ 
+ 
++#include <cstdint>
+ #include <aws/core/utils/StringUtils.h>
+ #include <aws/core/utils/memory/stl/AWSStringStream.h>
+ #include <algorithm>

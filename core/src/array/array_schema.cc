@@ -773,8 +773,8 @@ int ArraySchema::serialize(
     memcpy(buffer + offset, &compression, sizeof(char));
     offset += sizeof(char);
   }
-  // Copy compression_level_
-  char compression_level;
+  // Copy compression_level_. Levels can be negative, and char is unsigned on some platforms
+  int8_t compression_level;
   for(int i=0; i<=attribute_num_; ++i) {
     compression_level = compression_level_[i];
     assert(offset + sizeof(char) <= buffer_size);
@@ -790,7 +790,7 @@ int ArraySchema::serialize(
     offset += sizeof(char);
   }
   // Copy offsets compression_level_
-  char offsets_compression_level;
+  int8_t offsets_compression_level;
   for(int i=0; i<attribute_num_; ++i) {
     offsets_compression_level = offsets_compression_level_[i];
     assert(offset + sizeof(char) <= buffer_size);
@@ -1198,7 +1198,8 @@ int ArraySchema::deserialize(
   }
   // Load compression_level_. Support added in array schema version 1L
   if (get_version() >= 1L) {
-    char compression_level;
+    // Levels can be negative, and char is unsigned on some platforms
+    int8_t compression_level;
     for(int i=0; i<=attribute_num_; ++i) {
       assert(offset + sizeof(char) <= buffer_size);
       memcpy(&compression_level, buffer + offset, sizeof(char));
@@ -1218,7 +1219,7 @@ int ArraySchema::deserialize(
   }
   // Load offsets_compression_level_. Support added in array schema version 2L
   if (get_version() >= 2L) {
-    char offsets_compression_level;
+    int8_t offsets_compression_level;
     for(int i=0; i<attribute_num_; ++i) {
       assert(offset + sizeof(char) <= buffer_size);
       memcpy(&offsets_compression_level, buffer + offset, sizeof(char));

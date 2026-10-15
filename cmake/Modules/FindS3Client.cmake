@@ -68,6 +68,16 @@ elseif(NOT AWSSDK_FOUND)
     -DCMAKE_PREFIX_PATH=${AWSSDK_PREFIX}
     -DCMAKE_INSTALL_LIBDIR=${CMAKE_INSTALL_LIBDIR})
 
+  # The SDKs are built with the same compilers and deployment target as TileDB.
+  # CMake 4 refuses their cmake_minimum_required() of less than 3.5.
+  list(APPEND AWSSDK_COMMON_CMAKE_ARGS
+    -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+    -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+    -DCMAKE_POLICY_VERSION_MINIMUM=3.5)
+  if(CMAKE_OSX_DEPLOYMENT_TARGET)
+    list(APPEND AWSSDK_COMMON_CMAKE_ARGS -DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET})
+  endif()
+
   # Workaround for issues with semicolon separated substrings to ExternalProject_Add
   # https://discourse.cmake.org/t/how-to-pass-cmake-osx-architectures-to-externalproject-add/2262
   if(CMAKE_OSX_ARCHITECTURES)
@@ -106,7 +116,8 @@ elseif(NOT AWSSDK_FOUND)
                   patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/awssdk/build.patch &&
                   patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/awssdk/cjson.patch &&
 		  patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/awssdk/eventstreamdecoder.patch &&
-		  patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/awssdk/aws_ossl.patch
+		  patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/awssdk/aws_ossl.patch &&
+		  patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/awssdk/missing_includes.patch
     CMAKE_ARGS ${AWSSDK_COMMON_CMAKE_ARGS}
     -DENABLE_TESTING=OFF
     -DENABLE_UNITY_BUILD=ON

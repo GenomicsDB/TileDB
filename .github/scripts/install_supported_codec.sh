@@ -2,10 +2,6 @@
 
 INSTALL_DIR=${INSTALL_DIR:-/usr}
 
-# Install ZStd 
-sudo apt-get install -y zstd &&
-export ENABLE_ZSTD=1
-
 # Install Blosc
 echo "Installing Blosc..."
 pushd `pwd`

@@ -104,7 +104,8 @@
 
 /**@{*/
 /** Special empty cell value. */
-#define TILEDB_EMPTY_CHAR                      CHAR_MAX
+// Not CHAR_MAX, which is 255 where char is unsigned, so arrays read the same everywhere
+#define TILEDB_EMPTY_CHAR                      0x7F
 #define TILEDB_EMPTY_INT8                      INT8_MAX
 #define TILEDB_EMPTY_INT16                     INT16_MAX
 #define TILEDB_EMPTY_INT32                     INT32_MAX
