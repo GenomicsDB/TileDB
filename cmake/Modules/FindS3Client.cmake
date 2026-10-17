@@ -178,9 +178,11 @@ elseif(NOT AWSSDK_FOUND)
       set(_AWSSDK_TARGET_NAME AWS::${_AWSSDK_LIB})
     endif()
     add_library(${_AWSSDK_TARGET_NAME} STATIC IMPORTED)
+    # Linking the static libraries also needs the libcurl and OpenSSL they were built against, after them
     set_target_properties(${_AWSSDK_TARGET_NAME} PROPERTIES
                 IMPORTED_LOCATION ${_AWSSDK_STATIC_LIBRARY}
-                INTERFACE_INCLUDE_DIRECTORIES ${AWSSDK_INCLUDE_DIR})
+                INTERFACE_INCLUDE_DIRECTORIES ${AWSSDK_INCLUDE_DIR}
+                INTERFACE_LINK_LIBRARIES "${CURL_LIBRARIES};${OPENSSL_LIBRARIES}")
     list(APPEND AWSSDK_LINK_LIBRARIES ${_AWSSDK_TARGET_NAME})
   endforeach()
   if(APPLE)
