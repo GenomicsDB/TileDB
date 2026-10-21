@@ -77,7 +77,7 @@ if(APPLE)
     target_link_options(tiledb_shared PUBLIC ${TILEDB_LINK_OPTIONS})
 endif()
 
-# The SDKs' static libraries use libcurl and OpenSSL, so these follow them on the link line
+# TileDB uses libcurl and OpenSSL itself; the SDKs' imported targets bring them in after the SDKs' libraries
 target_link_libraries(tiledb_static muparserx azure-storage-adls ${AWSSDK_LINK_LIBRARIES} ${GCSSDK_LINK_LIBRARIES}
                       ${CURL_LIBRARIES} ${OPENSSL_LIBRARIES})
 target_link_libraries(tiledb_shared ${TILEDB_LIB_DEPENDENCIES})
